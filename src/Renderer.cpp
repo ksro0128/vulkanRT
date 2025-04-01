@@ -17,6 +17,9 @@ void Renderer::cleanup() {
 void Renderer::init(GLFWwindow* window) {
 	std::cout << "Renderer::init" << std::endl;
 	this->window = window;
-	context = VulkanContext::createVulkanContext(window);
+	m_context = VulkanContext::createVulkanContext(window);
+	m_swapChain = SwapChain::createSwapChain(window, m_context.get());
+	m_syncObjects = SyncObjects::createSyncObjects(m_context.get());
+
 
 }

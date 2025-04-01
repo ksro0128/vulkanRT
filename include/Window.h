@@ -8,12 +8,12 @@ public:
 	~Window();
 
 
-	GLFWwindow* getWindow() { return window; }
+	GLFWwindow* getWindow() { return m_window; }
 
 private:
 	Window() {}
 
-	GLFWwindow* window;
+	GLFWwindow* m_window;
 
 	void initWindow();
 	void cleanup();

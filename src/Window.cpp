@@ -12,7 +12,7 @@ Window::~Window() {
 
 void Window::cleanup() {
 	std::cout << "Window::cleanup" << std::endl;
-	glfwDestroyWindow(window);
+	glfwDestroyWindow(m_window);
 	glfwTerminate();
 }
 
@@ -23,6 +23,6 @@ void Window::initWindow() {
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-	window = glfwCreateWindow(1080, 720, "Vulkan", nullptr, nullptr);
+	m_window = glfwCreateWindow(1080, 720, "Vulkan", nullptr, nullptr);
 
 }

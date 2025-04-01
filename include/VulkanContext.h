@@ -8,30 +8,30 @@ public:
 	~VulkanContext();
 	void createSurface(GLFWwindow* window);
 
-	VkInstance getInstance() { return instance; }
-	VkDebugUtilsMessengerEXT getDebugMessenger() { return debugMessenger; }
-	VkPhysicalDevice getPhysicalDevice() { return physicalDevice; }
-	VkDevice getDevice() { return device; }
-	VkQueue getGraphicsQueue() { return graphicsQueue; }
-	VkQueue getPresentQueue() { return presentQueue; }
-	VkCommandPool getCommandPool() { return commandPool; }
-	VkSurfaceKHR getSurface() { return surface; }
-	VkSampleCountFlagBits getMaxMsaaSamples() { return maxMsaaSamples; }
-	VkDescriptorPool getDescriptorPool() { return descriptorPool; }
+	VkInstance getInstance() { return m_instance; }
+	VkDebugUtilsMessengerEXT getDebugMessenger() { return m_debugMessenger; }
+	VkPhysicalDevice getPhysicalDevice() { return m_physicalDevice; }
+	VkDevice getDevice() { return m_device; }
+	VkQueue getGraphicsQueue() { return m_graphicsQueue; }
+	VkQueue getPresentQueue() { return m_presentQueue; }
+	VkCommandPool getCommandPool() { return m_commandPool; }
+	VkSurfaceKHR getSurface() { return m_surface; }
+	VkSampleCountFlagBits getMaxMsaaSamples() { return m_maxMsaaSamples; }
+	VkDescriptorPool getDescriptorPool() { return m_descriptorPool; }
 
 private:
 	VulkanContext() {}
 
-	VkInstance instance;
-	VkDebugUtilsMessengerEXT debugMessenger;
-	VkSurfaceKHR surface;
-	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-	VkSampleCountFlagBits maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
-	VkDevice device;
-	VkQueue graphicsQueue;
-	VkQueue presentQueue;
-	VkCommandPool commandPool;
-	VkDescriptorPool descriptorPool;
+	VkInstance m_instance;
+	VkDebugUtilsMessengerEXT m_debugMessenger;
+	VkSurfaceKHR m_surface;
+	VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+	VkSampleCountFlagBits m_maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
+	VkDevice m_device;
+	VkQueue m_graphicsQueue;
+	VkQueue m_presentQueue;
+	VkCommandPool m_commandPool;
+	VkDescriptorPool m_descriptorPool;
 
 
 	void init(GLFWwindow* window);

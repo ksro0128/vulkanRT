@@ -10,8 +10,8 @@ public:
 	void run();
 
 private:
-	std::unique_ptr<Window> window;
-	std::unique_ptr<Renderer> renderer;
+	std::unique_ptr<Window> m_window;
+	std::unique_ptr<Renderer> m_renderer;
 
 	void init();
 	void cleanup();

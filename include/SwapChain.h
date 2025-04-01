@@ -12,24 +12,27 @@ public:
 
 	void recreateSwapChain();
 
-	VkSwapchainKHR getSwapChain() { return swapChain; }
-	std::vector<VkImage>& getSwapChainImages() { return swapChainImages; }
-	VkFormat getSwapChainImageFormat() { return swapChainImageFormat; }
-	VkExtent2D getSwapChainExtent() { return swapChainExtent; }
-	std::vector<VkImageView>& getSwapChainImageViews() { return swapChainImageViews; }
+	VkSwapchainKHR getSwapChain() { return m_swapChain; }
+	std::vector<VkImage>& getSwapChainImages() { return m_swapChainImages; }
+	VkFormat getSwapChainImageFormat() { return m_swapChainImageFormat; }
+	VkExtent2D getSwapChainExtent() { return m_swapChainExtent; }
+	std::vector<VkImageView>& getSwapChainImageViews() { return m_swapChainImageViews; }
 private:
-	VkSwapchainKHR swapChain;
-	std::vector<VkImage> swapChainImages;
-	VkFormat swapChainImageFormat;
-	VkExtent2D swapChainExtent;
-	std::vector<VkImageView> swapChainImageViews;
+	VulkanContext* context;
+	GLFWwindow* window;
+
+	VkSwapchainKHR m_swapChain;
+	std::vector<VkImage> m_swapChainImages;
+	VkFormat m_swapChainImageFormat;
+	VkExtent2D m_swapChainExtent;
+	std::vector<VkImageView> m_swapChainImageViews;
 
 	void init(GLFWwindow* window, VulkanContext* context);
-	void initSwapChain(GLFWwindow* window, VulkanContext* context);
-	void initImageViews(VulkanContext* context);
-	QueueFamilyIndices findQueueFamilies(VulkanContext* context);
-	SwapChainSupportDetails querySwapChainSupport(VulkanContext* context);
+	void initSwapChain();
+	void initImageViews();
+	QueueFamilyIndices findQueueFamilies();
+	SwapChainSupportDetails querySwapChainSupport();
 	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-	VkExtent2D chooseSwapExtent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR& capabilities);
+	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 };

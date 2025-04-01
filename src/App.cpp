@@ -11,15 +11,15 @@ App::~App() {
 void App::run() {
 	std::cout << "App::run" << std::endl;
 
-	while (!glfwWindowShouldClose(window->getWindow())) {
+	while (!glfwWindowShouldClose(m_window->getWindow())) {
 		glfwPollEvents();
 	}
 }
 
 void App::init() {
 	std::cout << "App::init" << std::endl;
-	window = Window::createWindow();
-	renderer = Renderer::createRenderer(window->getWindow());
+	m_window = Window::createWindow();
+	m_renderer = Renderer::createRenderer(m_window->getWindow());
 }
 
 void App::cleanup()
