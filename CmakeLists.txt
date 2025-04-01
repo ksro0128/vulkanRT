@@ -1,0 +1,88 @@
+cmake_minimum_required(VERSION 3.20)
+project(MyEngine)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(WINDOW_WIDTH 1920)
+set(WINDOW_HEIGHT 1080)
+
+# Vulkan SDK 환경변수 기준
+find_package(Vulkan REQUIRED)
+
+# GLFW (FetchContent로 자동 다운로드 가능)
+include(FetchContent)
+FetchContent_Declare(
+    glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw.git
+    GIT_TAG latest
+)
+FetchContent_MakeAvailable(glfw)
+
+# GLM (FetchContent로 가져오기)
+FetchContent_Declare(
+    glm
+    GIT_REPOSITORY https://github.com/g-truc/glm.git
+    GIT_TAG 0.9.9.8  # 원하는 버전으로 변경 가능
+)
+FetchContent_MakeAvailable(glm)
+
+set(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
+# Assimp
+FetchContent_Declare(
+    assimp
+    GIT_REPOSITORY https://github.com/assimp/assimp.git
+    GIT_TAG v5.3.1
+)
+FetchContent_MakeAvailable(assimp)
+
+# stb_image (헤더온리)
+FetchContent_Declare(
+    stb
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(stb)
+
+# ImGui
+FetchContent_Declare(
+    imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(imgui)
+
+# 소스 파일 모음
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
+
+# 실행 파일 생성
+add_executable(${PROJECT_NAME} ${SOURCES})
+
+# ImGui 소스 추가
+set(IMGUI_SOURCES
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
+)
+target_sources(${PROJECT_NAME} PRIVATE ${IMGUI_SOURCES})
+
+
+# 라이브러리 링크
+target_link_libraries(${PROJECT_NAME}
+    Vulkan::Vulkan
+    glfw
+    assimp
+)
+
+# include 디렉토리 추가
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${glm_SOURCE_DIR}
+    ${stb_SOURCE_DIR}
+    ${imgui_SOURCE_DIR}
+    ${imgui_SOURCE_DIR}/backends
+    ${CMAKE_SOURCE_DIR}
+)
