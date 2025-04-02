@@ -2,13 +2,12 @@
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
 
-#include <assimp/Importer.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 //#define STB_IMAGE_IMPLEMENTATION
 //#include <stb_image.h>
-// cpp ���Ͽ� �߰��ؾ���
 
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
@@ -28,18 +27,31 @@
 #include <array>
 #include <optional>
 #include <set>
+#include <unordered_map>
 
-// ���ÿ� ó���� �ִ� ������ ��
+
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-// GPU�� surface�� �����ϴ� SwapChain ���� ���� ���� ����ü
+class IDGenerator {
+public:
+	static uint32_t getNextMeshID() {
+		static uint32_t meshID = 0;
+		return meshID++;
+	}
+
+	static uint32_t getNextMaterialID() {
+		static uint32_t matID = 0;
+		return matID++;
+	}
+};
+
 struct SwapChainSupportDetails {
 	VkSurfaceCapabilitiesKHR capabilities;
 	std::vector<VkSurfaceFormatKHR> formats;
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
-// ť �йи� �ε��� ���� ����ü
+
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
 	std::optional<uint32_t> presentFamily;
@@ -56,12 +68,12 @@ const bool enableValidationLayers = true;
 #endif
 
 
-// ���� ���̾� ����
+
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
 };
 
-// ���� ü�� Ȯ��
+
 const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
@@ -75,6 +87,7 @@ struct Vertex {
 	glm::vec3 pos;
 	glm::vec3 normal;
 	glm::vec2 texCoord;
+	glm::vec3 tangent;
 
 	// 정점 데이터가 전달되는 방법을 알려주는 구조체 반환하는 함수
 	static VkVertexInputBindingDescription getBindingDescription() {
@@ -89,9 +102,9 @@ struct Vertex {
 	}
 
 	// 정점 속성별 데이터 형식과 위치를 지정하는 구조체 반환하는 함수
-	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+	static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
 		// 정점 속성의 데이터 형식과 위치를 지정하는 구조체
-		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
 
 		// pos 속성 정보 입력
 		attributeDescriptions[0].binding = 0;							// 버텍스 버퍼의 바인딩 포인트
@@ -111,6 +124,17 @@ struct Vertex {
 		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
 		attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
 
+		// tangent 속성 정보 입력
+		attributeDescriptions[3].binding = 0;
+		attributeDescriptions[3].location = 3;
+		attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[3].offset = offsetof(Vertex, tangent);
+
 		return attributeDescriptions;
 	}
+};
+
+struct CameraUniformBuffer {
+	alignas(16) glm::mat4 view;
+	alignas(16) glm::mat4 proj;
 };

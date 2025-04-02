@@ -28,3 +28,75 @@ private:
     void init(VulkanContext* context, std::vector<Vertex> &vertices);
 };
 
+class IndexBuffer : public Buffer {
+public:
+	static std::unique_ptr<IndexBuffer> createIndexBuffer(VulkanContext* context, std::vector<uint32_t>& indices);
+    ~IndexBuffer();
+	void cleanup() override;
+	void bind(VkCommandBuffer commandBuffer);
+	uint32_t getIndexCount() { return m_indexCount; }
+private:
+	uint32_t m_indexCount;
+
+	void init(VulkanContext* context, std::vector<uint32_t>& indices);
+};
+
+class ImageBuffer : public Buffer {
+public:
+	static std::unique_ptr<ImageBuffer> createImageBuffer(VulkanContext* context, std::string path);
+	static std::unique_ptr<ImageBuffer> createHDRImageBuffer(VulkanContext* context, std::string path);
+	static std::unique_ptr<ImageBuffer> createDefaultImageBuffer(VulkanContext* context, glm::vec4 color);
+	~ImageBuffer();
+	void cleanup() override;
+
+	uint32_t getMipLevels() { return m_mipLevels; }
+	VkImage getImage() { return m_image; }
+	VkDeviceMemory getImageMemory() { return m_textureImageMemory; }
+
+private:
+	uint32_t m_mipLevels;
+	VkImage m_image;
+	VkDeviceMemory m_textureImageMemory;
+
+	bool init(VulkanContext* context, std::string path);
+	bool initHDR(VulkanContext* context, std::string path);
+	void initDefault(VulkanContext* context, glm::vec4 color);
+	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
+	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
+};
+
+class UniformBuffer : public Buffer {
+public:
+	static std::shared_ptr<UniformBuffer> createUniformBuffer(VulkanContext* context, VkDeviceSize buffersize);
+	~UniformBuffer();
+	void updateUniformBuffer(void* data, VkDeviceSize size);
+	VkBuffer getBuffer() { return m_buffer; }
+	VkDeviceMemory getBufferMemory() { return m_bufferMemory; }
+private:
+	void* m_mappedMemory = nullptr;
+
+	void init(VulkanContext* context, VkDeviceSize buffersize);
+	void cleanup();
+};
+
+class StorageBuffer : public Buffer {
+public:
+	std::shared_ptr<StorageBuffer> createStorageBuffer(VulkanContext* context, VkDeviceSize buffersize);
+	~StorageBuffer();
+	VkBuffer getBuffer() { return m_buffer; }
+	VkDeviceMemory getBufferMemory() { return m_bufferMemory; }
+	VkDeviceSize getCurrentSize() { return m_currentSize; }
+
+	void updateStorageBuffer(void* data, VkDeviceSize totalSize);
+	void updateStorageBufferAt(uint32_t index, void* data, VkDeviceSize structSize);
+	void resizeStorageBuffer(VkDeviceSize size);
+
+
+private:
+	void* m_mappedMemory = nullptr;
+	VkDeviceSize m_currentSize = 0;
+
+	void init(VulkanContext* context, VkDeviceSize buffersize);
+	void cleanup();
+};

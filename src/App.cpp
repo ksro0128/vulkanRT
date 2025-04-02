@@ -13,6 +13,8 @@ void App::run() {
 
 	while (!glfwWindowShouldClose(m_window->getWindow())) {
 		glfwPollEvents();
+		m_renderer->update();
+		m_renderer->render();
 	}
 }
 
