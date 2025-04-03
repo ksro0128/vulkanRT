@@ -43,7 +43,7 @@ private:
 
 class ImageBuffer : public Buffer {
 public:
-	static std::unique_ptr<ImageBuffer> createImageBuffer(VulkanContext* context, std::string path);
+	static std::unique_ptr<ImageBuffer> createImageBuffer(VulkanContext* context, std::string path, VkFormat format);
 	static std::unique_ptr<ImageBuffer> createHDRImageBuffer(VulkanContext* context, std::string path);
 	static std::unique_ptr<ImageBuffer> createDefaultImageBuffer(VulkanContext* context, glm::vec4 color);
 	~ImageBuffer();
@@ -58,7 +58,7 @@ private:
 	VkImage m_image;
 	VkDeviceMemory m_textureImageMemory;
 
-	bool init(VulkanContext* context, std::string path);
+	bool init(VulkanContext* context, std::string path, VkFormat format);
 	bool initHDR(VulkanContext* context, std::string path);
 	void initDefault(VulkanContext* context, glm::vec4 color);
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
@@ -68,7 +68,7 @@ private:
 
 class UniformBuffer : public Buffer {
 public:
-	static std::shared_ptr<UniformBuffer> createUniformBuffer(VulkanContext* context, VkDeviceSize buffersize);
+	static std::unique_ptr<UniformBuffer> createUniformBuffer(VulkanContext* context, VkDeviceSize buffersize);
 	~UniformBuffer();
 	void updateUniformBuffer(void* data, VkDeviceSize size);
 	VkBuffer getBuffer() { return m_buffer; }
@@ -82,7 +82,7 @@ private:
 
 class StorageBuffer : public Buffer {
 public:
-	std::shared_ptr<StorageBuffer> createStorageBuffer(VulkanContext* context, VkDeviceSize buffersize);
+	static std::unique_ptr<StorageBuffer> createStorageBuffer(VulkanContext* context, VkDeviceSize buffersize);
 	~StorageBuffer();
 	VkBuffer getBuffer() { return m_buffer; }
 	VkDeviceMemory getBufferMemory() { return m_bufferMemory; }

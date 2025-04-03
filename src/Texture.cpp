@@ -1,22 +1,30 @@
 #include "include/Texture.h"
 
-std::unique_ptr<Texture> Texture::createTexture(VulkanContext* context, std::string path) {
+std::unique_ptr<Texture> Texture::createTexture(VulkanContext* context, std::string path, TextureFormatType formatType) {
 	std::unique_ptr<Texture> texture = std::unique_ptr<Texture>(new Texture());
-	texture->init(context, path);
+	texture->init(context, path, formatType);
 	return texture;
 }
 
-void Texture::init(VulkanContext* context, std::string path) {
+void Texture::init(VulkanContext* context, std::string path, TextureFormatType formatType) {
 	this->context = context;
 
-	m_imageBuffer = ImageBuffer::createImageBuffer(context, path);
-	m_imageView = VulkanUtil::createImageView(context, m_imageBuffer->getImage(), VK_FORMAT_R8G8B8A8_SRGB,
+	VkFormat format = (formatType == TextureFormatType::ColorSRGB)
+		? VK_FORMAT_R8G8B8A8_SRGB
+		: VK_FORMAT_R8G8B8A8_UNORM;
+
+	m_imageBuffer = ImageBuffer::createImageBuffer(context, path, format);
+	m_imageView = VulkanUtil::createImageView(context, m_imageBuffer->getImage(), format,
 		VK_IMAGE_ASPECT_COLOR_BIT, m_imageBuffer->getMipLevels());
 	VkSamplerCreateInfo samplerInfo = createDefaultSamplerInfo();
 	if (vkCreateSampler(context->getDevice(), &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS)
 	{
 		std::cerr << "failed to create image sampler" << std::endl;
 	}
+
+	std::cout << "imageview: " << m_imageView << std::endl;
+	std::cout << "imageSampler: " << m_sampler << std::endl;
+
 }
 
 Texture::~Texture() {
@@ -82,5 +90,22 @@ std::unique_ptr<Texture> Texture::createDefaultTexture(VulkanContext* context, g
 
 void Texture::initDefaultTexture(VulkanContext* context, glm::vec4 color) {
 	this->context = context;
-	//m_imageBuffer = ImageBuffer::create
+
+	m_imageBuffer = ImageBuffer::createDefaultImageBuffer(context, color);
+
+	m_imageView = VulkanUtil::createImageView(
+		context,
+		m_imageBuffer->getImage(),
+		VK_FORMAT_R8G8B8A8_UNORM,
+		VK_IMAGE_ASPECT_COLOR_BIT,
+		m_imageBuffer->getMipLevels()
+	);
+
+	VkSamplerCreateInfo samplerInfo = createDefaultSamplerInfo();
+	if (vkCreateSampler(context->getDevice(), &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create default image sampler!");
+	}
+
+	std::cout << "imageview: " << m_imageView << std::endl;
+	std::cout << "imageSampler: " << m_sampler << std::endl;
 }

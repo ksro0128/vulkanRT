@@ -1,4 +1,4 @@
-#include "include/VulkanContext.h"
+﻿#include "include/VulkanContext.h"
 
 std::unique_ptr<VulkanContext> VulkanContext::createVulkanContext(GLFWwindow* window) {
 	std::unique_ptr<VulkanContext> context = std::unique_ptr<VulkanContext>(new VulkanContext());
@@ -45,7 +45,7 @@ void VulkanContext::createInstance() {
 	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	appInfo.pEngineName = "No Engine";
 	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.apiVersion = VK_API_VERSION_1_0;
+	appInfo.apiVersion = VK_API_VERSION_1_2;
 
 	VkInstanceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -164,7 +164,6 @@ void VulkanContext::pickPhysicalDevice() {
 
 bool VulkanContext::isDeviceSuitable(VkPhysicalDevice device) {
 	QueueFamilyIndices indices = findQueueFamilies(device);
-
 	bool extensionsSupported = checkDeviceExtensionSupport(device);
 	bool swapChainAdequate = false;
 
@@ -172,12 +171,27 @@ bool VulkanContext::isDeviceSuitable(VkPhysicalDevice device) {
 		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
 		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 	}
+	VkPhysicalDeviceVulkan12Features features12{};
+	features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 
-	VkPhysicalDeviceFeatures supportedFeatures;
-	vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+	VkPhysicalDeviceFeatures2 features2{};
+	features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	features2.pNext = &features12;
 
-	return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+	vkGetPhysicalDeviceFeatures2(device, &features2);
+
+	std::cout << "Checking device suitability..." << std::endl;
+	std::cout << "  - Queue Complete : " << indices.isComplete() << std::endl;
+	std::cout << "  - Extensions     : " << extensionsSupported << std::endl;
+	std::cout << "  - SwapChain OK   : " << swapChainAdequate << std::endl;
+	std::cout << "  - Anisotropy     : " << features2.features.samplerAnisotropy << std::endl;
+	std::cout << "  - Vulkan12 Feat  : UpdateAfterBind(" << features12.descriptorBindingSampledImageUpdateAfterBind
+		<< "), PartiallyBound(" << features12.descriptorBindingPartiallyBound << ")" << std::endl;
+
+
+	return indices.isComplete() && extensionsSupported && swapChainAdequate && features2.features.samplerAnisotropy;
 }
+
 
 VkSampleCountFlagBits VulkanContext::getMaxUsableSampleCount() {
 	VkPhysicalDeviceProperties physicalDeviceProperties;
@@ -239,6 +253,13 @@ bool VulkanContext::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 		requiredExtensions.erase(extension.extensionName);
 	}
 
+	if (!requiredExtensions.empty()) {
+		std::cout << "Missing extensions for this device:" << std::endl;
+		for (const auto& ext : requiredExtensions) {
+			std::cout << "  - " << ext << std::endl;
+		}
+	}
+
 	return requiredExtensions.empty();
 }
 
@@ -285,14 +306,25 @@ void VulkanContext::createLogicalDevice() {
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.sampleRateShading = VK_TRUE;
 
+	VkPhysicalDeviceVulkan12Features features12{};
+	features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	features12.descriptorBindingPartiallyBound = VK_TRUE;
+	features12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+	features12.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+	features12.descriptorIndexing = VK_TRUE;
+
+	VkPhysicalDeviceFeatures2 features2{};
+	features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	features2.features = deviceFeatures;
+	features2.pNext = &features12;
+
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();
-	createInfo.pEnabledFeatures = &deviceFeatures;
-
+	createInfo.pNext = &features2;
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-	createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+	createInfo.ppEnabledExtensionNames = deviceExtensions.data();;
 
 	if (enableValidationLayers) {
 		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
@@ -326,30 +358,36 @@ void VulkanContext::createCommandPool() {
 
 
 void VulkanContext::createDescriptorPool() {
-	size_t MAX_OBJECTS = 1000;
-
 	std::array<VkDescriptorPoolSize, 4> poolSizes{};
+
+	// Set0 - Global
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * MAX_OBJECTS);
-	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * MAX_OBJECTS);
-	poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * MAX_OBJECTS);
+	poolSizes[0].descriptorCount = MAX_FRAMES_IN_FLIGHT * 10;
+
+	poolSizes[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT * 10;
+
+	// Set1 - Object, Material
+	poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	poolSizes[2].descriptorCount = MAX_OBJECT_COUNT;
+
+	// Set2 - Texture
 	poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[3].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * MAX_OBJECTS);
-
-
+	poolSizes[3].descriptorCount = MAX_TEXTURE_COUNT;
 
 	VkDescriptorPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 	poolInfo.pPoolSizes = poolSizes.data();
-	poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT * MAX_OBJECTS);
+	poolInfo.maxSets = MAX_FRAMES_IN_FLIGHT * 256;
+
+	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
 
 	if (vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor pool!");
 	}
 }
+
 
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanContext::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

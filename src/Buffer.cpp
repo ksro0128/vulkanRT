@@ -126,14 +126,14 @@ void IndexBuffer::cleanup() {
 }
 
 
-std::unique_ptr<ImageBuffer> ImageBuffer::createImageBuffer(VulkanContext* context, std::string path) {
+std::unique_ptr<ImageBuffer> ImageBuffer::createImageBuffer(VulkanContext* context, std::string path, VkFormat format) {
 	std::unique_ptr<ImageBuffer> imageBuffer = std::unique_ptr<ImageBuffer>(new ImageBuffer());
-	if (!(imageBuffer->init(context, path)))
+	if (!(imageBuffer->init(context, path, format)))
 		return nullptr;
 	return imageBuffer;
 }
 
-bool ImageBuffer::init(VulkanContext* context, std::string path) {
+bool ImageBuffer::init(VulkanContext* context, std::string path, VkFormat format) {
 	this->context = context;
 
 	int texWidth, texHeight, texChannels;
@@ -141,7 +141,7 @@ bool ImageBuffer::init(VulkanContext* context, std::string path) {
 	VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 	if (!pixels) {
-		std::cout << "ImageBuffer::init() fail to image load!" << std::endl;
+		std::cout << "ImageBuffer::init() fail to image load! path : " << path << std::endl;
 		return false;
 	}
 
@@ -158,17 +158,17 @@ bool ImageBuffer::init(VulkanContext* context, std::string path) {
 
 	stbi_image_free(pixels);
 	VulkanUtil::createImage(context, texWidth, texHeight, m_mipLevels,
-		VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+		VK_SAMPLE_COUNT_1_BIT, format, VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_textureImageMemory);
 
-	transitionImageLayout(m_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_mipLevels);
+	transitionImageLayout(m_image, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_mipLevels);
 	copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
 	vkDestroyBuffer(context->getDevice(), stagingBuffer, nullptr);
 	vkFreeMemory(context->getDevice(), stagingBufferMemory, nullptr);
 
-	generateMipmaps(m_image, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, m_mipLevels);
+	generateMipmaps(m_image, format, texWidth, texHeight, m_mipLevels);
 	std::cout << "create image" << std::endl;
 	return true;
 }
@@ -459,8 +459,8 @@ void ImageBuffer::initDefault(VulkanContext* context, glm::vec4 color)
 }
 
 
-std::shared_ptr<UniformBuffer> UniformBuffer::createUniformBuffer(VulkanContext* context, VkDeviceSize buffersize) {
-	std::shared_ptr<UniformBuffer> uniformBuffer = std::shared_ptr<UniformBuffer>(new UniformBuffer());
+std::unique_ptr<UniformBuffer> UniformBuffer::createUniformBuffer(VulkanContext* context, VkDeviceSize buffersize) {
+	std::unique_ptr<UniformBuffer> uniformBuffer = std::unique_ptr<UniformBuffer>(new UniformBuffer());
 	uniformBuffer->init(context, buffersize);
 	return uniformBuffer;
 }
@@ -478,6 +478,7 @@ UniformBuffer::~UniformBuffer() {
 }
 
 void UniformBuffer::cleanup() {
+	std::cout << "UniformBuffer::cleanup" << std::endl;
 	if (m_mappedMemory)
 	{
 		vkUnmapMemory(context->getDevice(), m_bufferMemory);
@@ -499,8 +500,8 @@ void UniformBuffer::updateUniformBuffer(void* data, VkDeviceSize size) {
 	memcpy(m_mappedMemory, data, size);
 }
 
-std::shared_ptr<StorageBuffer> StorageBuffer::createStorageBuffer(VulkanContext* context, VkDeviceSize buffersize) {
-	std::shared_ptr<StorageBuffer> storageBuffer = std::shared_ptr<StorageBuffer>(new StorageBuffer());
+std::unique_ptr<StorageBuffer> StorageBuffer::createStorageBuffer(VulkanContext* context, VkDeviceSize buffersize) {
+	std::unique_ptr<StorageBuffer> storageBuffer = std::unique_ptr<StorageBuffer>(new StorageBuffer());
 	storageBuffer->init(context, buffersize);
 	return storageBuffer;
 }
@@ -519,6 +520,7 @@ StorageBuffer::~StorageBuffer() {
 }
 
 void StorageBuffer::cleanup() {
+	std::cout << "StorageBuffer::cleanup" << std::endl;
 	if (m_mappedMemory)
 	{
 		vkUnmapMemory(context->getDevice(), m_bufferMemory);

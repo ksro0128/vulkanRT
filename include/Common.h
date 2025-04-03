@@ -31,19 +31,13 @@
 
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
+constexpr uint32_t MAX_LIGHT_COUNT = 64;
 
-class IDGenerator {
-public:
-	static uint32_t getNextMeshID() {
-		static uint32_t meshID = 0;
-		return meshID++;
-	}
+constexpr uint32_t MAX_OBJECT_COUNT = 1000;
+constexpr uint32_t MAX_MESH_COUNT = 100000;
+constexpr uint32_t MAX_MATERIAL_COUNT = 1024;
+constexpr uint32_t MAX_TEXTURE_COUNT = 1024;
 
-	static uint32_t getNextMaterialID() {
-		static uint32_t matID = 0;
-		return matID++;
-	}
-};
 
 struct SwapChainSupportDetails {
 	VkSurfaceCapabilitiesKHR capabilities;
@@ -75,7 +69,9 @@ const std::vector<const char*> validationLayers = {
 
 
 const std::vector<const char*> deviceExtensions = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+	VK_KHR_MAINTENANCE3_EXTENSION_NAME
 };
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
@@ -134,7 +130,42 @@ struct Vertex {
 	}
 };
 
-struct CameraUniformBuffer {
-	alignas(16) glm::mat4 view;
-	alignas(16) glm::mat4 proj;
+struct alignas(16) CameraBuffer {
+	glm::mat4 view;
+	glm::mat4 proj;
+	glm::vec3 camPos;
+	float pad = 0.0f;
 };
+
+struct alignas(16) DirectionalLight {
+	glm::vec4 direction;
+	glm::vec3 color;
+	float intensity;
+};
+
+struct alignas(16) LightBuffer {
+	DirectionalLight lights[MAX_LIGHT_COUNT];
+	int lightCount;
+	glm::vec3 pad;
+};
+
+struct alignas(16) ModelBuffer {
+	glm::mat4 model;
+};
+
+struct alignas(16) Material {
+	glm::vec4 baseColor = glm::vec4(1.0f);
+	glm::vec3 emissiveFactor = glm::vec3(0.0f);
+	float roughness = 0.5f;
+	float metallic = 0.0f;
+	float ao = 1.0f;
+
+	int albedoTexIndex = -1;
+	int normalTexIndex = -1;
+	int metallicTexIndex = -1;
+	int roughnessTexIndex = -1;
+	int aoTexIndex = -1;
+	int emissiveTexIndex = -1;
+};
+
+void printMaterial(const Material& mat);

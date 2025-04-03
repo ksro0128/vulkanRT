@@ -1,10 +1,8 @@
 #include "include/Mesh.h"
 
-std::shared_ptr<Mesh> Mesh::createMesh(VulkanContext* context, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices) {
-	std::shared_ptr<Mesh> mesh = std::shared_ptr<Mesh>(new Mesh());
+std::unique_ptr<Mesh> Mesh::createMesh(VulkanContext* context, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices) {
+	std::unique_ptr<Mesh> mesh = std::unique_ptr<Mesh>(new Mesh());
 	mesh->init(context, vertices, indices);
-	static uint32_t id = 0;
-	mesh->m_id = id++;
 	return mesh;
 }
 
@@ -72,7 +70,7 @@ void Mesh::draw(VkCommandBuffer commandBuffer) {
 	vkCmdDrawIndexed(commandBuffer, m_indexBuffer->getIndexCount(), 1, 0, 0, 0);
 }
 
-std::shared_ptr<Mesh> Mesh::createBoxMesh(VulkanContext* context) {
+std::unique_ptr<Mesh> Mesh::createBoxMesh(VulkanContext* context) {
 	std::vector<Vertex> vertices = {
 		Vertex{glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(0.0f, 0.0f)},
 		Vertex{glm::vec3(0.5f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(1.0f, 0.0f)},
@@ -113,7 +111,7 @@ std::shared_ptr<Mesh> Mesh::createBoxMesh(VulkanContext* context) {
 	return createMesh(context, vertices, indices);
 }
 
-std::shared_ptr<Mesh> Mesh::createSphereMesh(VulkanContext* context) {
+std::unique_ptr<Mesh> Mesh::createSphereMesh(VulkanContext* context) {
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
@@ -159,7 +157,7 @@ std::shared_ptr<Mesh> Mesh::createSphereMesh(VulkanContext* context) {
 }
 
 
-std::shared_ptr<Mesh> Mesh::createPlaneMesh(VulkanContext* context)
+std::unique_ptr<Mesh> Mesh::createPlaneMesh(VulkanContext* context)
 {
 	std::vector<Vertex> vertices = {
 		Vertex{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
