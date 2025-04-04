@@ -46,15 +46,41 @@ std::unique_ptr<DescriptorSetLayout> DescriptorSetLayout::createObjectMaterialDe
 void DescriptorSetLayout::initObjectMaterial(VulkanContext* context) {
 	this->context = context;
 
+	VkDescriptorSetLayoutBinding instanceBinding{};
+	instanceBinding.binding = 0;
+	instanceBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	instanceBinding.descriptorCount = 1;
+	instanceBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+	instanceBinding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo{};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = 1;
+	layoutInfo.pBindings = &instanceBinding;
+
+	if (vkCreateDescriptorSetLayout(context->getDevice(), &layoutInfo, nullptr, &m_layout) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create Set1 descriptor set layout!");
+	}
+}
+
+std::unique_ptr<DescriptorSetLayout> DescriptorSetLayout::createBindlessDescriptorSetLayout(VulkanContext* context) {
+	std::unique_ptr<DescriptorSetLayout> layout = std::unique_ptr<DescriptorSetLayout>(new DescriptorSetLayout());
+	layout->initBindless(context);
+	return layout;
+}
+
+void DescriptorSetLayout::initBindless(VulkanContext* context) {
+	this->context = context;
+
 	std::vector<VkDescriptorSetLayoutBinding> bindings;
 
-	VkDescriptorSetLayoutBinding modelMatrixBinding{};
-	modelMatrixBinding.binding = 0;
-	modelMatrixBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	modelMatrixBinding.descriptorCount = 1;
-	modelMatrixBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	modelMatrixBinding.pImmutableSamplers = nullptr;
-	bindings.push_back(modelMatrixBinding);
+	VkDescriptorSetLayoutBinding modelBinding{};
+	modelBinding.binding = 0;
+	modelBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	modelBinding.descriptorCount = 1;
+	modelBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	modelBinding.pImmutableSamplers = nullptr;
+	bindings.push_back(modelBinding);
 
 	VkDescriptorSetLayoutBinding materialBinding{};
 	materialBinding.binding = 1;
@@ -64,37 +90,8 @@ void DescriptorSetLayout::initObjectMaterial(VulkanContext* context) {
 	materialBinding.pImmutableSamplers = nullptr;
 	bindings.push_back(materialBinding);
 
-	VkDescriptorSetLayoutCreateInfo layoutInfo{};
-	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-	layoutInfo.pBindings = bindings.data();
-
-	if (vkCreateDescriptorSetLayout(context->getDevice(), &layoutInfo, nullptr, &m_layout) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create Set1 descriptor set layout!");
-	}
-}
-
-std::unique_ptr<DescriptorSetLayout> DescriptorSetLayout::createTextureDescriptorSetLayout(VulkanContext* context) {
-	std::unique_ptr<DescriptorSetLayout> layout = std::unique_ptr<DescriptorSetLayout>(new DescriptorSetLayout());
-	layout->initTexture(context);
-	return layout;
-}
-
-void DescriptorSetLayout::initTexture(VulkanContext* context) {
-	this->context = context;
-
-	std::vector<VkDescriptorSetLayoutBinding> bindings;
-
-	VkDescriptorSetLayoutBinding materialBufferBinding{};
-	materialBufferBinding.binding = 0;
-	materialBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	materialBufferBinding.descriptorCount = 1;
-	materialBufferBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	materialBufferBinding.pImmutableSamplers = nullptr;
-	bindings.push_back(materialBufferBinding);
-
 	VkDescriptorSetLayoutBinding textureBinding{};
-	textureBinding.binding = 1;
+	textureBinding.binding = 2;
 	textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	textureBinding.descriptorCount = MAX_TEXTURE_COUNT;
 	textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -102,6 +99,7 @@ void DescriptorSetLayout::initTexture(VulkanContext* context) {
 	bindings.push_back(textureBinding);
 
 	std::vector<VkDescriptorBindingFlags> bindingFlags = {
+		0,
 		0,
 		VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
 	};
@@ -119,7 +117,7 @@ void DescriptorSetLayout::initTexture(VulkanContext* context) {
 	layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 
 	if (vkCreateDescriptorSetLayout(context->getDevice(), &layoutInfo, nullptr, &m_layout) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create texture descriptor set layout!");
+		throw std::runtime_error("failed to create bindless descriptor set layout!");
 	}
 }
 

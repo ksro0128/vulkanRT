@@ -18,13 +18,13 @@ public:
 	static std::unique_ptr<DescriptorSet> createObjectMaterialDescriptorSet(
 		VulkanContext* context,
 		DescriptorSetLayout* layout,
-		StorageBuffer* modelBuffer,
-		StorageBuffer* materialBuffer
+		StorageBuffer* objectInstanceBuffer
 	);
 
-	static std::unique_ptr<DescriptorSet> createTextureDescriptorSet(
+	static std::unique_ptr<DescriptorSet> createBindlessDescriptorSet(
 		VulkanContext* context,
 		DescriptorSetLayout* layout,
+		StorageBuffer* modelBuffer,
 		StorageBuffer* materialBuffer,
 		const std::vector<std::unique_ptr<Texture>>& textureList
 	);
@@ -40,8 +40,8 @@ private:
 	void initGlobal(VulkanContext* context, DescriptorSetLayout* layout, 
 		UniformBuffer* cameraBuffer, StorageBuffer* lightBuffer);
 	void initObjectMaterial(VulkanContext* context, DescriptorSetLayout* layout,
-		StorageBuffer* modelBuffer, StorageBuffer* materialBuffer);
-	void initTexture(VulkanContext* context, DescriptorSetLayout* layout, StorageBuffer* materialBuffer,
+		StorageBuffer* objectInstanceBuffer);
+	void initBindless(VulkanContext* context, DescriptorSetLayout* layout, StorageBuffer* modelBuffer, StorageBuffer* materialBuffer,
 		const std::vector<std::unique_ptr<Texture>>& textureList);
 	void cleanup();
 };

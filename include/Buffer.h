@@ -46,6 +46,8 @@ public:
 	static std::unique_ptr<ImageBuffer> createImageBuffer(VulkanContext* context, std::string path, VkFormat format);
 	static std::unique_ptr<ImageBuffer> createHDRImageBuffer(VulkanContext* context, std::string path);
 	static std::unique_ptr<ImageBuffer> createDefaultImageBuffer(VulkanContext* context, glm::vec4 color);
+	static std::unique_ptr<ImageBuffer> createAttachmentImageBuffer(VulkanContext* context, uint32_t width,
+		uint32_t height, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags);
 	~ImageBuffer();
 	void cleanup() override;
 
@@ -61,6 +63,8 @@ private:
 	bool init(VulkanContext* context, std::string path, VkFormat format);
 	bool initHDR(VulkanContext* context, std::string path);
 	void initDefault(VulkanContext* context, glm::vec4 color);
+	void initAttachment(VulkanContext* context, uint32_t width,
+		uint32_t height, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags);
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
 	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);

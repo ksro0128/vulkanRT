@@ -11,7 +11,7 @@ public:
 	static VkCommandBuffer beginSingleTimeCommands(VulkanContext* context);
 	static void endSingleTimeCommands(VulkanContext* context, VkCommandBuffer commandBuffer);
 	
-	//static VkFormat findDepthFormat();
-	//static VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-	//static std::vector<char> readFile(const std::string& filename);
+	static VkFormat findDepthFormat(VulkanContext* context);
+	static VkFormat findSupportedFormat(VulkanContext* context, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+	static std::vector<char> readFile(const std::string& filename);
 };

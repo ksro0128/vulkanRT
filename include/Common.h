@@ -33,7 +33,7 @@
 const int MAX_FRAMES_IN_FLIGHT = 2;
 constexpr uint32_t MAX_LIGHT_COUNT = 64;
 
-constexpr uint32_t MAX_OBJECT_COUNT = 1000;
+constexpr uint32_t MAX_OBJECT_COUNT = 10000;
 constexpr uint32_t MAX_MESH_COUNT = 100000;
 constexpr uint32_t MAX_MATERIAL_COUNT = 1024;
 constexpr uint32_t MAX_TEXTURE_COUNT = 1024;
@@ -149,12 +149,13 @@ struct alignas(16) LightBuffer {
 	glm::vec3 pad;
 };
 
-struct alignas(16) ModelBuffer {
-	glm::mat4 model;
+struct alignas(8) ObjectInstance {
+	int modelMatrixIndex;
+	int materialIndex;
 };
 
-struct alignas(16) MaterialIndexBuffer {
-	int index = -1;
+struct alignas(16) ModelBuffer {
+	glm::mat4 model;
 };
 
 struct alignas(16) Material {

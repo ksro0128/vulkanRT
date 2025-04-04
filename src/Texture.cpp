@@ -109,3 +109,28 @@ void Texture::initDefaultTexture(VulkanContext* context, glm::vec4 color) {
 	std::cout << "imageview: " << m_imageView << std::endl;
 	std::cout << "imageSampler: " << m_sampler << std::endl;
 }
+
+std::unique_ptr<Texture> Texture::createAttachmentTexture(VulkanContext* context, uint32_t width,
+	uint32_t height, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags) {
+	std::unique_ptr<Texture> texture = std::unique_ptr<Texture>(new Texture());
+	texture->initAttachmentTexture(context, width, height, format, usage, aspectFlags);
+	return texture;
+}
+
+
+void Texture::initAttachmentTexture(VulkanContext* context, uint32_t width,
+	uint32_t height, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags) {
+	this->context = context;
+
+	m_imageBuffer = ImageBuffer::createAttachmentImageBuffer(context, width, height, format, usage, aspectFlags);
+
+	m_imageView = VulkanUtil::createImageView(
+		context,
+		m_imageBuffer->getImage(),
+		format,
+		aspectFlags,
+		m_imageBuffer->getMipLevels()
+	);
+
+	m_sampler = VK_NULL_HANDLE; // Attachment Texture는 sampler가 필요 없음
+}
