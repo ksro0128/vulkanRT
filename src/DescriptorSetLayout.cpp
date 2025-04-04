@@ -83,25 +83,38 @@ std::unique_ptr<DescriptorSetLayout> DescriptorSetLayout::createTextureDescripto
 void DescriptorSetLayout::initTexture(VulkanContext* context) {
 	this->context = context;
 
+	std::vector<VkDescriptorSetLayoutBinding> bindings;
+
+	VkDescriptorSetLayoutBinding materialBufferBinding{};
+	materialBufferBinding.binding = 0;
+	materialBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	materialBufferBinding.descriptorCount = 1;
+	materialBufferBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	materialBufferBinding.pImmutableSamplers = nullptr;
+	bindings.push_back(materialBufferBinding);
+
 	VkDescriptorSetLayoutBinding textureBinding{};
-	textureBinding.binding = 0;
+	textureBinding.binding = 1;
 	textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	textureBinding.descriptorCount = MAX_TEXTURE_COUNT;
 	textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	textureBinding.pImmutableSamplers = nullptr;
+	bindings.push_back(textureBinding);
 
-	VkDescriptorBindingFlags bindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-		VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+	std::vector<VkDescriptorBindingFlags> bindingFlags = {
+		0,
+		VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+	};
 
 	VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo{};
 	bindingFlagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-	bindingFlagsInfo.bindingCount = 1;
-	bindingFlagsInfo.pBindingFlags = &bindingFlags;
+	bindingFlagsInfo.bindingCount = static_cast<uint32_t>(bindingFlags.size());
+	bindingFlagsInfo.pBindingFlags = bindingFlags.data();
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo{};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = 1;
-	layoutInfo.pBindings = &textureBinding;
+	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+	layoutInfo.pBindings = bindings.data();
 	layoutInfo.pNext = &bindingFlagsInfo;
 	layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 

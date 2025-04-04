@@ -153,6 +153,10 @@ struct alignas(16) ModelBuffer {
 	glm::mat4 model;
 };
 
+struct alignas(16) MaterialIndexBuffer {
+	int index = -1;
+};
+
 struct alignas(16) Material {
 	glm::vec4 baseColor = glm::vec4(1.0f);
 	glm::vec3 emissiveFactor = glm::vec3(0.0f);

@@ -25,6 +25,7 @@ public:
 	static std::unique_ptr<DescriptorSet> createTextureDescriptorSet(
 		VulkanContext* context,
 		DescriptorSetLayout* layout,
+		StorageBuffer* materialBuffer,
 		const std::vector<std::unique_ptr<Texture>>& textureList
 	);
 
@@ -40,7 +41,7 @@ private:
 		UniformBuffer* cameraBuffer, StorageBuffer* lightBuffer);
 	void initObjectMaterial(VulkanContext* context, DescriptorSetLayout* layout,
 		StorageBuffer* modelBuffer, StorageBuffer* materialBuffer);
-	void initTexture(VulkanContext* context, DescriptorSetLayout* layout,
+	void initTexture(VulkanContext* context, DescriptorSetLayout* layout, StorageBuffer* materialBuffer,
 		const std::vector<std::unique_ptr<Texture>>& textureList);
 	void cleanup();
 };

@@ -125,14 +125,16 @@ void DescriptorSet::initObjectMaterial(VulkanContext* context, DescriptorSetLayo
 }
 
 std::unique_ptr<DescriptorSet> DescriptorSet::createTextureDescriptorSet(
-	VulkanContext* context, DescriptorSetLayout* layout, const std::vector<std::unique_ptr<Texture>>& textureList)
+	VulkanContext* context, DescriptorSetLayout* layout, StorageBuffer* materialBuffer, 
+	const std::vector<std::unique_ptr<Texture>>& textureList)
 {
 	std::unique_ptr<DescriptorSet> descriptorSet = std::unique_ptr<DescriptorSet>(new DescriptorSet());
-	descriptorSet->initTexture(context, layout, textureList);
+	descriptorSet->initTexture(context, layout, materialBuffer, textureList);
 	return descriptorSet;
 }
 
-void DescriptorSet::initTexture(VulkanContext* context, DescriptorSetLayout* layout, const std::vector<std::unique_ptr<Texture>>& textureList)
+void DescriptorSet::initTexture(VulkanContext* context, DescriptorSetLayout* layout, StorageBuffer* materialBuffer, 
+	const std::vector<std::unique_ptr<Texture>>& textureList)
 {
 	this->context = context;
 
@@ -147,6 +149,20 @@ void DescriptorSet::initTexture(VulkanContext* context, DescriptorSetLayout* lay
 	if (vkAllocateDescriptorSets(context->getDevice(), &allocInfo, &m_descriptorSet) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate texture descriptor set!");
 	}
+
+	VkDescriptorBufferInfo materialBufferInfo{};
+	materialBufferInfo.buffer = materialBuffer->getBuffer();
+	materialBufferInfo.offset = 0;
+	materialBufferInfo.range = materialBuffer->getCurrentSize();
+
+	VkWriteDescriptorSet materialWrite{};
+	materialWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	materialWrite.dstSet = m_descriptorSet;
+	materialWrite.dstBinding = 0;
+	materialWrite.dstArrayElement = 0;
+	materialWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	materialWrite.descriptorCount = 1;
+	materialWrite.pBufferInfo = &materialBufferInfo;
 
 	// Image infos 배열 생성
 	std::vector<VkDescriptorImageInfo> imageInfos;
@@ -174,14 +190,17 @@ void DescriptorSet::initTexture(VulkanContext* context, DescriptorSetLayout* lay
 		imageInfos.push_back(imageInfo);
 	}
 
-	VkWriteDescriptorSet descriptorWrite{};
-	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite.dstSet = m_descriptorSet;
-	descriptorWrite.dstBinding = 0;
-	descriptorWrite.dstArrayElement = 0;
-	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	descriptorWrite.descriptorCount = static_cast<uint32_t>(imageInfos.size());
-	descriptorWrite.pImageInfo = imageInfos.data();
+	VkWriteDescriptorSet textureWrite{};
+	textureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	textureWrite.dstSet = m_descriptorSet;
+	textureWrite.dstBinding = 1;
+	textureWrite.dstArrayElement = 0;
+	textureWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	textureWrite.descriptorCount = static_cast<uint32_t>(imageInfos.size());
+	textureWrite.pImageInfo = imageInfos.data();
 
-	vkUpdateDescriptorSets(context->getDevice(), 1, &descriptorWrite, 0, nullptr);
+	std::array<VkWriteDescriptorSet, 2> writes = { materialWrite, textureWrite };
+
+	vkUpdateDescriptorSets(context->getDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+
 }

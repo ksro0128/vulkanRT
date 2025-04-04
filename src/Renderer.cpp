@@ -25,21 +25,26 @@ void Renderer::init(GLFWwindow* window) {
 	std::string modelPath = "./assets/models/lion_head_1k.gltf/lion_head_1k.gltf";
 	loadModel(modelPath);
 
+	// descriptorset layout
 	m_globalLayout = DescriptorSetLayout::createGlobalDescriptorSetLayout(m_context.get());
 	m_objectMaterialLayout = DescriptorSetLayout::createObjectMaterialDescriptorSetLayout(m_context.get());
 	m_textureLayout = DescriptorSetLayout::createTextureDescriptorSetLayout(m_context.get());
 
+
+	// buffers
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		m_cameraBuffers[i] = UniformBuffer::createUniformBuffer(m_context.get(), sizeof(CameraBuffer));
 		m_lightBuffers[i] = StorageBuffer::createStorageBuffer(m_context.get(), sizeof(LightBuffer));
 		m_modelBuffers[i] = StorageBuffer::createStorageBuffer(m_context.get(), sizeof(ModelBuffer) * MAX_OBJECT_COUNT);
-		m_materialBuffers[i] = StorageBuffer::createStorageBuffer(m_context.get(), sizeof(Material) * MAX_MATERIAL_COUNT);
+		m_materialIndexBuffers[i] = StorageBuffer::createStorageBuffer(m_context.get(), sizeof(MaterialIndexBuffer) * MAX_OBJECT_COUNT * 2);
+		m_materialBuffers[i] = StorageBuffer::createStorageBuffer(m_context.get(), sizeof(Material) * MAX_OBJECT_COUNT * 2);
 	}
 
+	// descriptorset
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		m_globlaDescSets[i] = DescriptorSet::createGlobalDescriptorSet(m_context.get(), m_globalLayout.get(), m_cameraBuffers[i].get(), m_lightBuffers[i].get());
-		m_objectMaterialDescSets[i] = DescriptorSet::createObjectMaterialDescriptorSet(m_context.get(), m_objectMaterialLayout.get(), m_modelBuffers[i].get(), m_materialBuffers[i].get());
-		m_textureDescSets[i] = DescriptorSet::createTextureDescriptorSet(m_context.get(), m_textureLayout.get(), m_textureList);
+		m_objectMaterialDescSets[i] = DescriptorSet::createObjectMaterialDescriptorSet(m_context.get(), m_objectMaterialLayout.get(), m_modelBuffers[i].get(), m_materialIndexBuffers[i].get());
+		m_textureDescSets[i] = DescriptorSet::createTextureDescriptorSet(m_context.get(), m_textureLayout.get(), m_materialBuffers[i].get(), m_textureList);
 	}
 
 	printAllResources();
