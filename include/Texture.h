@@ -19,12 +19,15 @@ public:
 
 	VkImageView getImageView() { return m_imageView; }
 	VkSampler getSampler() { return m_sampler; }
+	ImageBuffer* getImageBuffer() { return m_imageBuffer.get(); }
+	VkFormat getFormat() { return m_format; }
 
 private:
 	VulkanContext* context;
 	std::unique_ptr<ImageBuffer> m_imageBuffer;
 	VkImageView m_imageView;
 	VkSampler m_sampler;
+	VkFormat m_format;
 
 	void init(VulkanContext* context, std::string path, TextureFormatType formatType);
 	void initDefaultTexture(VulkanContext* context, glm::vec4 color);

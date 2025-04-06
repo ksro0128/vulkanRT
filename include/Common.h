@@ -12,6 +12,8 @@
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
+#include <imgui.h>
+#include "imgui_internal.h"
 
 
 #include <iostream>
@@ -28,6 +30,7 @@
 #include <optional>
 #include <set>
 #include <unordered_map>
+#include <cmath>
 
 
 const int MAX_FRAMES_IN_FLIGHT = 2;

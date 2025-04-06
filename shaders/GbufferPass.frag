@@ -42,12 +42,12 @@ void main() {
 
     float metallic = mat.metallic;
     if (mat.metallicTexIndex >= 0) {
-        metallic *= texture(textures[nonuniformEXT(mat.metallicTexIndex)], fragTexCoord).r;
+        metallic *= texture(textures[nonuniformEXT(mat.metallicTexIndex)], fragTexCoord).b;
     }
 
     float roughness = mat.roughness;
     if (mat.roughnessTexIndex >= 0) {
-        roughness *= texture(textures[nonuniformEXT(mat.roughnessTexIndex)], fragTexCoord).r;
+        roughness *= texture(textures[nonuniformEXT(mat.roughnessTexIndex)], fragTexCoord).g;
     }
 
     float ao = mat.ao;
@@ -55,7 +55,7 @@ void main() {
         ao *= texture(textures[nonuniformEXT(mat.aoTexIndex)], fragTexCoord).r;
     }
 
-    vec3 normal = normalize(fragNormal); // TODO: 나중에 normal map 적용 가능
+    vec3 normal = normalize(fragNormal);
     if (mat.normalTexIndex >= 0) {
         vec3 tangentNormal = texture(textures[nonuniformEXT(mat.normalTexIndex)], fragTexCoord).xyz * 2.0 - 1.0;
         normal = normalize(fragTBN * tangentNormal);
@@ -65,5 +65,5 @@ void main() {
     outPosition = vec4(fragWorldPos, 1.0);
     outNormal   = vec4(normal, float(materialIndex));
     outAlbedo   = vec4(albedo, 1.0);
-    outPBR      = vec4(metallic, roughness, ao, 1.0);
+    outPBR      = vec4(ao, roughness, metallic, 1.0);
 }

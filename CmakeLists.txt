@@ -47,17 +47,14 @@ FetchContent_MakeAvailable(stb)
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG master
+    GIT_TAG docking
 )
 FetchContent_MakeAvailable(imgui)
 
-# 소스 파일 모음
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
-# 실행 파일 생성
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-# ImGui 소스 추가
 set(IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
@@ -69,15 +66,16 @@ set(IMGUI_SOURCES
 )
 target_sources(${PROJECT_NAME} PRIVATE ${IMGUI_SOURCES})
 
+# Dear ImGui docking
+target_compile_definitions(${PROJECT_NAME} PRIVATE IMGUI_ENABLE_DOCKING)
 
-# 라이브러리 링크
+
 target_link_libraries(${PROJECT_NAME}
     Vulkan::Vulkan
     glfw
     assimp
 )
 
-# include 디렉토리 추가
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${glm_SOURCE_DIR}
     ${stb_SOURCE_DIR}
@@ -95,3 +93,5 @@ add_custom_command(
             ${CMAKE_SOURCE_DIR}/spv
             $<TARGET_FILE_DIR:MyEngine>/spv
 )
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

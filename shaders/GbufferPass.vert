@@ -41,7 +41,7 @@ void main() {
     vec4 worldPos = model * vec4(inPosition, 1.0);
     fragWorldPos = worldPos.xyz;
 
-    mat3 normalMatrix = transpose(inverse(mat3(model)));
+    mat3 normalMatrix = mat3(transpose(inverse(model)));
     fragNormal = normalMatrix * inNormal;
 
     vec3 T = normalize(normalMatrix * inTangent);

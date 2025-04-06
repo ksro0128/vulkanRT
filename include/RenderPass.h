@@ -2,10 +2,12 @@
 
 #include "Common.h"
 #include "VulkanContext.h"
+#include "SwapChain.h"
 
 class RenderPass {
 public:
 	static std::unique_ptr<RenderPass> createGbufferRenderPass(VulkanContext* context);
+	static std::unique_ptr<RenderPass> createImGuiRenderPass(VulkanContext* context, SwapChain* swapChain);
 	~RenderPass();
 
 	VkRenderPass getRenderPass() { return m_renderPass; }
@@ -14,5 +16,6 @@ private:
 	VkRenderPass m_renderPass;
 
 	void initGbuffer(VulkanContext* context);
+	void initImGui(VulkanContext* context, SwapChain* swapChain);
 	void cleanup();
 };

@@ -16,6 +16,7 @@
 #include "FrameBuffer.h"
 #include "Pipeline.h"
 #include "CommandBuffers.h"
+#include "GuiRenderer.h"
 
 class Renderer {
 public:
@@ -60,18 +61,23 @@ private:
 
 	// renderpass
 	std::unique_ptr<RenderPass> m_gbufferRenderPass;
+	std::unique_ptr<RenderPass> m_imguiRenderPass;
 
 	// attachment
-	std::array<GbufferAttachment, MAX_FRAMES_IN_FLIGHT> m_gbufferAttachments;
+	std::vector<GbufferAttachment> m_gbufferAttachments;
 
 	// framebuffer
-	std::array<std::unique_ptr<FrameBuffer>, MAX_FRAMES_IN_FLIGHT> m_gbufferFrameBuffers;
+	std::vector<std::unique_ptr<FrameBuffer>> m_gbufferFrameBuffers;
+	std::vector<std::unique_ptr<FrameBuffer>> m_imguiFrameBuffers;
 
 	// pipeline
 	std::unique_ptr<Pipeline> m_gbufferPipeline;
 
 	// command buffer
 	std::unique_ptr<CommandBuffers> m_commandBuffers;
+
+	// gui renderer
+	std::unique_ptr<GuiRenderer> m_guiRenderer;
 
 
 	// scene
@@ -88,13 +94,17 @@ private:
 
 	void cleanup();
 	void init(GLFWwindow* window);
-
+	void recreateSwapChain();
+	void recreateViewport(ImVec2 newExtent);
 	
 	void loadModel(const std::string& modelPath);
 	void createDefaultModels();
 
 	void recordGbufferCommandBuffer();
+	void recordImGuiCommandBuffer(uint32_t imageIndex);
 
 	void printAllResources();
 	void scene();
+
+	void transferImageLayout(VkCommandBuffer cmd, Texture* texture, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage);
 };

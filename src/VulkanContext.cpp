@@ -312,6 +312,9 @@ void VulkanContext::createLogicalDevice() {
 	features12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 	features12.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
 	features12.descriptorIndexing = VK_TRUE;
+	features12.runtimeDescriptorArray = VK_TRUE;
+	features12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+
 
 	VkPhysicalDeviceFeatures2 features2{};
 	features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;

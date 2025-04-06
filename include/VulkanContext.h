@@ -18,6 +18,7 @@ public:
 	VkSurfaceKHR getSurface() { return m_surface; }
 	VkSampleCountFlagBits getMaxMsaaSamples() { return m_maxMsaaSamples; }
 	VkDescriptorPool getDescriptorPool() { return m_descriptorPool; }
+	uint32_t getQueueFamily() { return findQueueFamilies(m_physicalDevice).graphicsFamily.value(); }
 
 private:
 	VulkanContext() {}

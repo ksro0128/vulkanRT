@@ -180,86 +180,86 @@ void IndexBuffer::bind(VkCommandBuffer commandBuffer) {
 void ImageBuffer::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) {
 	VkCommandBuffer commandBuffer = VulkanUtil::beginSingleTimeCommands(context);
 
-	// º£¸®¾î »ý¼ºÀ» À§ÇÑ ±¸Á¶Ã¼
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ã¼
 	VkImageMemoryBarrier barrier{};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.oldLayout = oldLayout;										// src ´Ü°è±îÁöÀÇ ÀÌ¹ÌÁö ·¹ÀÌ¾Æ¿ô
-	barrier.newLayout = newLayout;										// src ´Ü°è ÀÌÈÄ Àû¿ë½ÃÅ³ »õ·Î¿î ÀÌ¹ÌÁö ·¹ÀÌ¾Æ¿ô
-	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;				// º£¸®¾î ÀüÈ¯ Àû¿ë ÈÄ ¸®¼Ò½º ¼ÒÀ¯±ÇÀ» ³Ñ°ÜÁÙ src Å¥ ÆÐ¹Ð¸® (ÇöÀç´Â µ¿ÀÏ Å¥ ÆÐ¹Ð¸®¿¡¼­ ½ÇÇà)
-	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;				// ¸®¼Ò½º ¼ÒÀ¯±ÇÀ» ¹ÞÀ» dst Å¥ ÆÐ¹Ð¸®·Î dst Å¥ÆÐ¹Ð¸®¿¡´Â Å¥ ÀüÃ¼¿¡ µ¿±âÈ­°¡ Àû¿ë (ÇöÀç´Â µ¿ÀÏ Å¥ ÆÐ¹Ð¸®¿¡¼­ ½ÇÇà)
-	barrier.image = image;												// ¹è¸®¾î Àû¿ëÇÒ ÀÌ¹ÌÁö °´Ã¼
-	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;	// ÀüÈ¯ ÀÛ¾÷ÀÇ Àû¿ë ´ë»óÀ» color bit À¸·Î ¼³Á¤
-	barrier.subresourceRange.baseMipLevel = 0;							// ÀüÈ¯ ÀÛ¾÷À» ½ÃÀÛÇÒ miplevel
-	barrier.subresourceRange.levelCount = mipLevels;					// ÀüÈ¯ ÀÛ¾÷À» Àû¿ëÇÒ miplevelÀÇ °³¼ö
-	barrier.subresourceRange.baseArrayLayer = 0;						// ÀüÈ¯ ÀÛ¾÷À» ½ÃÀÛÇÒ ·¹ÀÌ¾î ÀÎµ¦½º
-	barrier.subresourceRange.layerCount = 1;							// ÀüÈ¯ ÀÛ¾÷À» Àû¿ëÇÒ ·¹ÀÌ¾î °³¼ö
+	barrier.oldLayout = oldLayout;										// src ï¿½Ü°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ì¹ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¾Æ¿ï¿½
+	barrier.newLayout = newLayout;										// src ï¿½Ü°ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Å³ ï¿½ï¿½ï¿½Î¿ï¿½ ï¿½Ì¹ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¾Æ¿ï¿½
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;				// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¯ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½Ò½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ñ°ï¿½ï¿½ï¿½ src Å¥ ï¿½Ð¹Ð¸ï¿½ (ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Å¥ ï¿½Ð¹Ð¸ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;				// ï¿½ï¿½ï¿½Ò½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ dst Å¥ ï¿½Ð¹Ð¸ï¿½ï¿½ï¿½ dst Å¥ï¿½Ð¹Ð¸ï¿½ï¿½ï¿½ï¿½ï¿½ Å¥ ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½È­ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Å¥ ï¿½Ð¹Ð¸ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)
+	barrier.image = image;												// ï¿½è¸®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ì¹ï¿½ï¿½ï¿½ ï¿½ï¿½Ã¼
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;	// ï¿½ï¿½È¯ ï¿½Û¾ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ color bit ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+	barrier.subresourceRange.baseMipLevel = 0;							// ï¿½ï¿½È¯ ï¿½Û¾ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ miplevel
+	barrier.subresourceRange.levelCount = mipLevels;					// ï¿½ï¿½È¯ ï¿½Û¾ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ miplevelï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+	barrier.subresourceRange.baseArrayLayer = 0;						// ï¿½ï¿½È¯ ï¿½Û¾ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¾ï¿½ ï¿½Îµï¿½ï¿½ï¿½
+	barrier.subresourceRange.layerCount = 1;							// ï¿½ï¿½È¯ ï¿½Û¾ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¾ï¿½ ï¿½ï¿½ï¿½ï¿½
 
-	VkPipelineStageFlags sourceStage;									// ÆÄÀÌÇÁ¶óÀÎÀÇ sourceStage ´Ü°è°¡ ³¡³ª¸é ¹è¸®¾î ÀüÈ¯ ½ÇÇà 
-	VkPipelineStageFlags destinationStage;								// destinationStage ´Ü°è´Â ¹è¸®¾î ÀüÈ¯ÀÌ ³¡³¯¶§±îÁö ´ë±â
+	VkPipelineStageFlags sourceStage;									// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ sourceStage ï¿½Ü°è°¡ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½è¸®ï¿½ï¿½ ï¿½ï¿½È¯ ï¿½ï¿½ï¿½ï¿½ 
+	VkPipelineStageFlags destinationStage;								// destinationStage ï¿½Ü°ï¿½ï¿½ ï¿½è¸®ï¿½ï¿½ ï¿½ï¿½È¯ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
 
 	if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-		// ÀÌ¹ÌÁö º¹»ç Àü¿¡ ÀÌ¹ÌÁö ·¹ÀÌ¾Æ¿ô, Á¢±Ù ±ÇÇÑ º¯°æ
-		barrier.srcAccessMask = 0;									// Á¢±Ù Á¦ÇÑ x
-		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;		// ¾²±â ±ÇÇÑ ÇÊ¿ä
+		// ï¿½Ì¹ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ì¹ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¾Æ¿ï¿½, ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+		barrier.srcAccessMask = 0;									// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ x
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;		// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¿ï¿½
 
-		sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;			// VulkanÀÇ ÆÄÀÌÇÁ¶óÀÎ¿¡¼­ °¡Àå »ó´Ü¿¡ À§Ä¡ÇÑ Ã¹ ¹øÂ° ´Ü°è·Î, ¾î¶°ÇÑ ÀÛ¾÷µµ ÁøÇàµÇÁö ¾ÊÀº »óÅÂ
-		destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;			// µ¥ÀÌÅÍ º¹»ç ´Ü°è
+		sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;			// Vulkanï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ü¿ï¿½ ï¿½ï¿½Ä¡ï¿½ï¿½ Ã¹ ï¿½ï¿½Â° ï¿½Ü°ï¿½ï¿½, ï¿½î¶°ï¿½ï¿½ ï¿½Û¾ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+		destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ü°ï¿½
 	}
 	else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-		// ÀÌ¹ÌÁö º¹»ç°¡ ¿Ï·áµÇ°í ÀÐ±â¸¦ ¼öÇàÇÏ±â À§ÇØ Fragment shader ÀÛ¾÷ ´ë±â
-		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;		// ¾²±â ±ÇÇÑ ÇÊ¿ä
-		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;			// ÀÐ±â ±ÇÇÑ ÇÊ¿ä
+		// ï¿½Ì¹ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ç°¡ ï¿½Ï·ï¿½Ç°ï¿½ ï¿½Ð±â¸¦ ï¿½ï¿½ï¿½ï¿½ï¿½Ï±ï¿½ ï¿½ï¿½ï¿½ï¿½ Fragment shader ï¿½Û¾ï¿½ ï¿½ï¿½ï¿½
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;		// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¿ï¿½
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;			// ï¿½Ð±ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¿ï¿½
 
-		sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;				// µ¥ÀÌÅÍ º¹»ç ´Ü°è
-		destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;	// Fragment shader ´Ü°è
+		sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;				// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ü°ï¿½
+		destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;	// Fragment shader ï¿½Ü°ï¿½
 	}
 	else {
 		throw std::invalid_argument("unsupported layout transition!");
 	}
 
-	// º£¸®¾î¸¦ Ä¿¸Çµå ¹öÆÛ¿¡ ±â·Ï
+	// ï¿½ï¿½ï¿½ï¿½ï¿½î¸¦ Ä¿ï¿½Çµï¿½ ï¿½ï¿½ï¿½Û¿ï¿½ ï¿½ï¿½ï¿½
 	vkCmdPipelineBarrier(
-		commandBuffer,						// º£¸®¾î¸¦ ±â·ÏÇÒ Ä¿¸Çµå ¹öÆÛ
-		sourceStage, destinationStage,		// sourceStage ´Ü°è°¡ ³¡³ª¸é º£¸®¾î ÀÛ¾÷ ½ÃÀÛ, º£¸®¾î ÀÛ¾÷ÀÌ ³¡³ª±â Àü¿¡ destinationStage¿¡ µ¹ÀÔÇÑ ´Ù¸¥ ÀÛ¾÷µé ¸ðµÎ ´ë±â
-		0,									// ÀÇÁ¸¼º ÇÃ·¡±×
-		0, nullptr,							// ¸Þ¸ð¸® º£¸®¾î (°³¼ö + º£¸®¾î Æ÷ÀÎÅÍ)
-		0, nullptr,							// ¹öÆÛ º£¸®¾î   (°³¼ö + º£¸®¾î Æ÷ÀÎÅÍ)
-		1, &barrier							// ÀÌ¹ÌÁö º£¸®¾î (°³¼ö + º£¸®¾î Æ÷ÀÎÅÍ)
+		commandBuffer,						// ï¿½ï¿½ï¿½ï¿½ï¿½î¸¦ ï¿½ï¿½ï¿½ï¿½ï¿½ Ä¿ï¿½Çµï¿½ ï¿½ï¿½ï¿½ï¿½
+		sourceStage, destinationStage,		// sourceStage ï¿½Ü°è°¡ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Û¾ï¿½ ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Û¾ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ destinationStageï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ù¸ï¿½ ï¿½Û¾ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
+		0,									// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ã·ï¿½ï¿½ï¿½
+		0, nullptr,							// ï¿½Þ¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ + ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+		0, nullptr,							// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   (ï¿½ï¿½ï¿½ï¿½ + ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+		1, &barrier							// ï¿½Ì¹ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ + ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 	);
 
 	VulkanUtil::endSingleTimeCommands(context, commandBuffer);
 }
 
-// Ä¿¸Çµå ¹öÆÛ Á¦ÃâÀ» ÅëÇØ ¹öÆÛ -> ÀÌ¹ÌÁö µ¥ÀÌÅÍ º¹»ç 
+// Ä¿ï¿½Çµï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ -> ï¿½Ì¹ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ 
 void ImageBuffer::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
-	// Ä¿¸Çµå ¹öÆÛ »ý¼º ¹× ±â·Ï ½ÃÀÛ
+	// Ä¿ï¿½Çµï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	VkCommandBuffer commandBuffer = VulkanUtil::beginSingleTimeCommands(context);
 
-	// ¹öÆÛ -> ÀÌ¹ÌÁö º¹»ç¸¦ À§ÇÑ Á¤º¸
+	// ï¿½ï¿½ï¿½ï¿½ -> ï¿½Ì¹ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ç¸¦ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	VkBufferImageCopy region{};
-	region.bufferOffset = 0;											// º¹»çÇÒ ¹öÆÛÀÇ ½ÃÀÛ À§Ä¡ offset
-	region.bufferRowLength = 0;											// ÀúÀåµÉ °ø°£ÀÇ row ´ç ÇÈ¼¿ ¼ö (0À¸·Î ÇÏ¸é ÀÌ¹ÌÁö ³Êºñ¿¡ ÀÚµ¿À¸·Î ¸ÂÃçÁø´Ù.)
-	region.bufferImageHeight = 0;										// ÀúÀåµÉ °ø°£ÀÇ col ´ç ÇÈ¼¿ ¼ö (0À¸·Î ÇÏ¸é ÀÌ¹ÌÁö ³ôÀÌ¿¡ ÀÚµ¿À¸·Î ¸ÂÃçÁø´Ù.)
-	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;		// ÀÌ¹ÌÁöÀÇ µ¥ÀÌÅÍ Å¸ÀÔ (ÇöÀç´Â ÄÃ·¯°ªÀ» º¹»ç)
-	region.imageSubresource.mipLevel = 0;								// ÀÌ¹ÌÁöÀÇ miplevel ¼³Á¤
-	region.imageSubresource.baseArrayLayer = 0;							// ÀÌ¹ÌÁöÀÇ ½ÃÀÛ layer ¼³Á¤ (cubemap°ú °°Àº °æ¿ì ¿©·¯ ·¹ÀÌ¾î Á¸Àç)
-	region.imageSubresource.layerCount = 1;								// ÀÌ¹ÌÁö layer °³¼ö
-	region.imageOffset = { 0, 0, 0 };										// ÀÌ¹ÌÁöÀÇ ÀúÀåÇÒ ½ÃÀÛ À§Ä¡
-	region.imageExtent = {												// ÀÌ¹ÌÁöÀÇ ÀúÀåÇÒ ³Êºñ, ³ôÀÌ, ±íÀÌ
+	region.bufferOffset = 0;											// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡ offset
+	region.bufferRowLength = 0;											// ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ row ï¿½ï¿½ ï¿½È¼ï¿½ ï¿½ï¿½ (0ï¿½ï¿½ï¿½ï¿½ ï¿½Ï¸ï¿½ ï¿½Ì¹ï¿½ï¿½ï¿½ ï¿½Êºï¿½ ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½.)
+	region.bufferImageHeight = 0;										// ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ col ï¿½ï¿½ ï¿½È¼ï¿½ ï¿½ï¿½ (0ï¿½ï¿½ï¿½ï¿½ ï¿½Ï¸ï¿½ ï¿½Ì¹ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¿ï¿½ ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½.)
+	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;		// ï¿½Ì¹ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Å¸ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ã·ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)
+	region.imageSubresource.mipLevel = 0;								// ï¿½Ì¹ï¿½ï¿½ï¿½ï¿½ï¿½ miplevel ï¿½ï¿½ï¿½ï¿½
+	region.imageSubresource.baseArrayLayer = 0;							// ï¿½Ì¹ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ layer ï¿½ï¿½ï¿½ï¿½ (cubemapï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¾ï¿½ ï¿½ï¿½ï¿½ï¿½)
+	region.imageSubresource.layerCount = 1;								// ï¿½Ì¹ï¿½ï¿½ï¿½ layer ï¿½ï¿½ï¿½ï¿½
+	region.imageOffset = { 0, 0, 0 };										// ï¿½Ì¹ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡
+	region.imageExtent = {												// ï¿½Ì¹ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Êºï¿½, ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½
 		width,
 		height,
 		1
 	};
 
-	// Ä¿¸Çµå ¹öÆÛ¿¡ ¹öÆÛ -> ÀÌ¹ÌÁö·Î µ¥ÀÌÅÍ º¹»çÇÏ´Â ¸í·É ±â·Ï
+	// Ä¿ï¿½Çµï¿½ ï¿½ï¿½ï¿½Û¿ï¿½ ï¿½ï¿½ï¿½ï¿½ -> ï¿½Ì¹ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
 	vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-	// Ä¿¸Çµå ¹öÆÛ ±â·Ï Á¾·á ¹× Á¦Ãâ
+	// Ä¿ï¿½Çµï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	VulkanUtil::endSingleTimeCommands(context, commandBuffer);
 }
 
 void ImageBuffer::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) {
-	// ÀÌ¹ÌÁö Æ÷¸ËÀÌ ¼±Çü ÇÊÅÍ¸µÀ» »ç¿ëÇÑ Blit ÀÛ¾÷À» Áö¿øÇÏ´ÂÁö È®ÀÎ
+	// ï¿½Ì¹ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Í¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ Blit ï¿½Û¾ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ï¿½ï¿½ È®ï¿½ï¿½
 	VkFormatProperties formatProperties;
 	vkGetPhysicalDeviceFormatProperties(context->getPhysicalDevice(), imageFormat, &formatProperties);
 
@@ -267,10 +267,10 @@ void ImageBuffer::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t t
 		throw std::runtime_error("texture image format does not support linear blitting!");
 	}
 
-	// Ä¿¸Çµå ¹öÆÛ »ý¼º ¹× ±â·Ï ½ÃÀÛ
+	// Ä¿ï¿½Çµï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	VkCommandBuffer commandBuffer = VulkanUtil::beginSingleTimeCommands(context);
 
-	// º£¸®¾î »ý¼º
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	VkImageMemoryBarrier barrier{};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	barrier.image = image;
@@ -286,43 +286,43 @@ void ImageBuffer::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t t
 
 	// miplevel 0 ~ mipLevels
 	for (uint32_t i = 1; i < mipLevels; i++) {
-		barrier.subresourceRange.baseMipLevel = i - 1;								// ÇØ´ç mipmap¿¡ ´ëÇÑ barrier ¼³Á¤
-		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;					// µ¥ÀÌÅÍ ¾²±â¿¡ ÀûÇÕÇÑ ·¹ÀÌ¾Æ¿ô
-		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;					// µ¥ÀÌÅÍ ÀÐ±â¿¡ ÀûÇÕÇÑ ·¹ÀÌ¾Æ¿ô
-		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;						// ¾²±â ±ÇÇÑ on
-		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;						// ÀÐ±â ±ÇÇÑ on
+		barrier.subresourceRange.baseMipLevel = i - 1;								// ï¿½Ø´ï¿½ mipmapï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ barrier ï¿½ï¿½ï¿½ï¿½
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;					// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½â¿¡ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¾Æ¿ï¿½
+		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;					// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ð±â¿¡ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì¾Æ¿ï¿½
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;						// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ on
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;						// ï¿½Ð±ï¿½ ï¿½ï¿½ï¿½ï¿½ on
 
-		// ÆÄÀÌÇÁ¶óÀÎ º£¸®¾î ¼³Á¤ (GPU Æ¯Á¤ ÀÛ¾÷°£ÀÇ µ¿±âÈ­ ¼³Á¤)
-		// ÀÌÀü ´Ü°èÀÇ mipmap º¹»ç°¡ ³¡³ª¾ß, ´ÙÀ½ ´Ü°è mipmap º¹»ç°¡ ½ÃÀÛµÇ°Ô º£¸®¾î ¼³Á¤
+		// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (GPU Æ¯ï¿½ï¿½ ï¿½Û¾ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½È­ ï¿½ï¿½ï¿½ï¿½)
+		// ï¿½ï¿½ï¿½ï¿½ ï¿½Ü°ï¿½ï¿½ï¿½ mipmap ï¿½ï¿½ï¿½ç°¡ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ ï¿½Ü°ï¿½ mipmap ï¿½ï¿½ï¿½ç°¡ ï¿½ï¿½ï¿½ÛµÇ°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 		vkCmdPipelineBarrier(commandBuffer,
 			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 			0, nullptr,
 			0, nullptr,
 			1, &barrier);
 
-		// blit ÀÛ¾÷½Ã ¼Ò½º¿Í ´ë»óÀÇ º¹»ç ¹üÀ§¸¦ ÁöÁ¤ÇÏ´Â ±¸Á¶Ã¼
+		// blit ï¿½Û¾ï¿½ï¿½ï¿½ ï¿½Ò½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ï¿½ï¿½Ã¼
 		VkImageBlit blit{};
 		blit.srcOffsets[0] = { 0, 0, 0 };
-		blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };														// ¼Ò½ºÀÇ ¹üÀ§ ¼³Á¤
+		blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };														// ï¿½Ò½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 		blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		blit.srcSubresource.mipLevel = i - 1;																// ¼Ò½ºÀÇ mipLevel ¼³Á¤
+		blit.srcSubresource.mipLevel = i - 1;																// ï¿½Ò½ï¿½ï¿½ï¿½ mipLevel ï¿½ï¿½ï¿½ï¿½
 		blit.srcSubresource.baseArrayLayer = 0;
 		blit.srcSubresource.layerCount = 1;
 		blit.dstOffsets[0] = { 0, 0, 0 };
-		blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };		// ´ë»óÀÇ ¹üÀ§ ¼³Á¤
+		blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };		// ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 		blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		blit.dstSubresource.mipLevel = i;																	// ´ë»óÀÇ mipLevel ¼³Á¤
+		blit.dstSubresource.mipLevel = i;																	// ï¿½ï¿½ï¿½ï¿½ï¿½ mipLevel ï¿½ï¿½ï¿½ï¿½
 		blit.dstSubresource.baseArrayLayer = 0;
 		blit.dstSubresource.layerCount = 1;
 
-		// ¼Ò½º miplevel À» ´ë»ó miplevel·Î ¼³Á¤¿¡ ¸Â°Ô º¹»ç
+		// ï¿½Ò½ï¿½ miplevel ï¿½ï¿½ ï¿½ï¿½ï¿½ miplevelï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Â°ï¿½ ï¿½ï¿½ï¿½ï¿½
 		vkCmdBlitImage(commandBuffer,
 			image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			1, &blit,
-			VK_FILTER_LINEAR); // ¼±ÇüÀûÀ¸·Î º¹»ç
+			VK_FILTER_LINEAR); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 
-		// shader ´Ü°è¿¡¼­ »ç¿ëÇÏ±â Àü¿¡ Bllit ´Ü°è°¡ ³¡³ª±â¸¦ ±â´Ù¸²
+		// shader ï¿½Ü°è¿¡ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï±ï¿½ ï¿½ï¿½ï¿½ï¿½ Bllit ï¿½Ü°è°¡ ï¿½ï¿½ï¿½ï¿½ï¿½â¸¦ ï¿½ï¿½Ù¸ï¿½
 		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
@@ -338,7 +338,7 @@ void ImageBuffer::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t t
 		if (mipHeight > 1) mipHeight /= 2;
 	}
 
-	// ¸¶Áö¸· ´Ü°è miplevel Ã³¸®
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ü°ï¿½ miplevel Ã³ï¿½ï¿½
 	barrier.subresourceRange.baseMipLevel = mipLevels - 1;
 	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 	barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -359,7 +359,7 @@ ImageBuffer::~ImageBuffer() {
 }
 
 void ImageBuffer::cleanup() {
-	std::cout << "ImageBuffer::cleanup" << std::endl;
+	// std::cout << "ImageBuffer::cleanup" << std::endl;
 	vkDestroyImage(context->getDevice(), m_image, nullptr);
 	vkFreeMemory(context->getDevice(), m_textureImageMemory, nullptr);
 }
@@ -423,10 +423,10 @@ void ImageBuffer::initDefault(VulkanContext* context, glm::vec4 color)
 {
 	this->context = context;
 
-	// 1. ½ºÅ×ÀÌÂ¡ ¹öÆÛ »ý¼º ¹× µ¥ÀÌÅÍ º¹»ç
+	// 1. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¡ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
-	VkDeviceSize bufferSize = 4; // RGBA 1ÇÈ¼¿
+	VkDeviceSize bufferSize = 4; // RGBA 1ï¿½È¼ï¿½
 
 	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
@@ -439,8 +439,8 @@ void ImageBuffer::initDefault(VulkanContext* context, glm::vec4 color)
 	memcpy(data, pixel, static_cast<size_t>(bufferSize));
 	vkUnmapMemory(context->getDevice(), stagingBufferMemory);
 
-	// 2. VulkanUtilÀ» »ç¿ëÇÏ¿© Default Image »ý¼º
-	m_mipLevels = 1; // Default Texture´Â mipmapÀÌ ÇÊ¿ä ¾øÀ½
+	// 2. VulkanUtilï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï¿ï¿½ Default Image ï¿½ï¿½ï¿½ï¿½
+	m_mipLevels = 1; // Default Textureï¿½ï¿½ mipmapï¿½ï¿½ ï¿½Ê¿ï¿½ ï¿½ï¿½ï¿½ï¿½
 
 	VulkanUtil::createImage(context, 1, 1, m_mipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,

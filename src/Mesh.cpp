@@ -70,6 +70,12 @@ void Mesh::draw(VkCommandBuffer commandBuffer) {
 	vkCmdDrawIndexed(commandBuffer, m_indexBuffer->getIndexCount(), 1, 0, 0, 0);
 }
 
+void Mesh::drawInstance(VkCommandBuffer commandBuffer, uint32_t instanceCount, uint32_t firstInstance) {
+	m_vertexBuffer->bind(commandBuffer);
+	m_indexBuffer->bind(commandBuffer);
+	vkCmdDrawIndexed(commandBuffer, m_indexBuffer->getIndexCount(), instanceCount, 0, 0, firstInstance);
+}
+
 std::unique_ptr<Mesh> Mesh::createBoxMesh(VulkanContext* context) {
 	std::vector<Vertex> vertices = {
 		Vertex{glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(0.0f, 0.0f)},

@@ -9,6 +9,7 @@
 class FrameBuffer {
 public:
 	static std::unique_ptr<FrameBuffer> createGbufferFrameBuffer(VulkanContext* context, RenderPass* renderPass, GbufferAttachment& gBufferAttachment, VkExtent2D extent);
+	static std::unique_ptr<FrameBuffer> createImGuiFrameBuffer(VulkanContext* context, RenderPass* renderPass, VkImageView& swapChainImageView, VkExtent2D extent);
 	~FrameBuffer();
 
 	VkFramebuffer getFrameBuffer() { return m_frameBuffer; }
@@ -17,5 +18,6 @@ private:
 	VkFramebuffer m_frameBuffer;
 
 	void initGbuffer(VulkanContext* context, RenderPass* renderPass, GbufferAttachment& gBufferAttachment, VkExtent2D extent);
+	void initImGui(VulkanContext* context, RenderPass* renderPass, VkImageView& swapChainImageView, VkExtent2D extent);
 	void cleanup();
 };
