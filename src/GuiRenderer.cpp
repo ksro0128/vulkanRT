@@ -87,7 +87,7 @@ void GuiRenderer::createDescriptorPool() {
  	ImGui::NewFrame();
  }
 
-void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scene) {
+void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scene, std::vector<Model>& modelList) {
      static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 
      ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
@@ -132,8 +132,6 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
      //ImGui::Image(m_viewPortDescriptorSet[currentFrame], m_viewportSize);
 	 ImGui::Image((ImTextureID)(uint64_t)m_viewPortDescriptorSet[currentFrame], m_viewportSize);
      ImGui::End();
-
-     
 	 
 	 // Scene
 	 ImGui::Begin("Scene");
@@ -190,125 +188,117 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 		 ImGui::PopID();
 	 }
 
-	 auto& objects = scene->getObjects();
-	 uint32_t maxModelIndex = scene->getMaxModelIndex();
-	 uint32_t maxMaterialIndex = scene->getMaxMaterialIndex();
+	//  auto& objects = scene->getObjects();
+	//  uint32_t maxModelIndex = scene->getMaxModelIndex();
+	//  uint32_t maxMaterialIndex = scene->getMaxMaterialIndex();
 
-	 for (int i = 0; i < objects.size(); i++) {
-		 ImGui::PushID(id++);
-		 if (ImGui::TreeNode(("Object " + std::to_string(i)).c_str())) {
-			 ImGui::DragFloat3("Position", glm::value_ptr(objects[i].position), 0.1f);
-			 ImGui::DragFloat3("Rotation", glm::value_ptr(objects[i].rotation), 1.0f);
-			 ImGui::DragFloat3("Scale", glm::value_ptr(objects[i].scale), 0.1f);
-			 // Model Index Combo
-			 std::vector<std::string> modelItems;
-			 for (uint32_t j = 0; j < maxModelIndex; j++)
-				 modelItems.push_back(std::to_string(j));
-			 std::vector<const char*> modelCStrs;
-			 for (auto& s : modelItems)
-				 modelCStrs.push_back(s.c_str());
+	//  for (int i = 0; i < objects.size(); i++) {
+	// 	 ImGui::PushID(id++);
+	// 	 if (ImGui::TreeNode(("Object " + std::to_string(i)).c_str())) {
+	// 		 ImGui::DragFloat3("Position", glm::value_ptr(objects[i].position), 0.1f);
+	// 		 ImGui::DragFloat3("Rotation", glm::value_ptr(objects[i].rotation), 1.0f);
+	// 		 ImGui::DragFloat3("Scale", glm::value_ptr(objects[i].scale), 0.1f);
+	// 		 // Model Index Combo
+	// 		 std::vector<std::string> modelItems;
+	// 		 for (uint32_t j = 0; j < maxModelIndex; j++)
+	// 			 modelItems.push_back(std::to_string(j));
+	// 		 std::vector<const char*> modelCStrs;
+	// 		 for (auto& s : modelItems)
+	// 			 modelCStrs.push_back(s.c_str());
 
-			 ImGui::Combo("Model Index", &objects[i].modelIndex, modelCStrs.data(), modelCStrs.size());
+	// 		 ImGui::Combo("Model Index", &objects[i].modelIndex, modelCStrs.data(), modelCStrs.size());
 
-			 // Override Material Indices
-			 for (int j = 0; j < objects[i].overrideMaterialIndex.size(); j++) {
-				 std::string label = "Material[" + std::to_string(j) + "]";
-				 int& matIndex = objects[i].overrideMaterialIndex[j];
-				 matIndex = std::clamp(matIndex, 0, (int)maxMaterialIndex - 1);
-				 ImGui::SliderInt(label.c_str(), &matIndex, 0, maxMaterialIndex - 1);
-			 }
-			 ImGui::TreePop();
-			 if (ImGui::Button("Remove Object")) {
-				 objects.erase(objects.begin() + i);
-				 ImGui::PopID();
-				 break;
-			 }
-		 }
-		 ImGui::PopID();
-	 }
+	// 		 // Override Material Indices
+	// 		 for (int j = 0; j < objects[i].overrideMaterialIndex.size(); j++) {
+	// 			 std::string label = "Material[" + std::to_string(j) + "]";
+	// 			 int& matIndex = objects[i].overrideMaterialIndex[j];
+	// 			 matIndex = std::clamp(matIndex, 0, (int)maxMaterialIndex - 1);
+	// 			 ImGui::SliderInt(label.c_str(), &matIndex, 0, maxMaterialIndex - 1);
+	// 		 }
+	// 		 ImGui::TreePop();
+	// 		 if (ImGui::Button("Remove Object")) {
+	// 			 objects.erase(objects.begin() + i);
+	// 			 ImGui::PopID();
+	// 			 break;
+	// 		 }
+	// 	 }
+	// 	 ImGui::PopID();
+	//  }
 
+	auto& objects = scene->getObjects();
+	uint32_t maxModelIndex = scene->getMaxModelIndex();
+	uint32_t maxMaterialIndex = scene->getMaxMaterialIndex();
 
+	for (int i = 0; i < objects.size(); i++) {
+		ImGui::PushID(id++);
+		if (ImGui::TreeNode(("Object " + std::to_string(i)).c_str())) {
+			ImGui::DragFloat3("Position", glm::value_ptr(objects[i].position), 0.1f);
+			ImGui::DragFloat3("Rotation", glm::value_ptr(objects[i].rotation), 1.0f);
+			ImGui::DragFloat3("Scale", glm::value_ptr(objects[i].scale), 0.1f);
+
+			std::vector<std::string> modelItems;
+			for (uint32_t j = 0; j < maxModelIndex; j++)
+				modelItems.push_back(std::to_string(j));
+			std::vector<const char*> modelCStrs;
+			for (auto& s : modelItems)
+				modelCStrs.push_back(s.c_str());
+			int oldModelIndex = objects[i].modelIndex;
+			ImGui::Combo("Model Index", &objects[i].modelIndex, modelCStrs.data(), modelCStrs.size());
+			if (oldModelIndex != objects[i].modelIndex) {
+				objects[i].overrideMaterialIndex.clear();
+			}
+
+			if (objects[i].modelIndex >= 0 && objects[i].modelIndex < modelList.size()) {
+				const auto& model = modelList[objects[i].modelIndex];
+				int meshCount = (int)model.mesh.size();
+
+				if (objects[i].overrideMaterialIndex.empty()) {
+					ImGui::Text("Using default materials:");
+				}
+
+				for (int j = 0; j < meshCount; j++) {
+					std::string label = "Material[" + std::to_string(j) + "]";
+
+					if (objects[i].overrideMaterialIndex.empty()) {
+						int defaultMat = model.material[j];
+						ImGui::Text("%s: %d (default)", label.c_str(), defaultMat);
+					} else {
+						int& matIndex = objects[i].overrideMaterialIndex[j];
+						matIndex = std::clamp(matIndex, 0, (int)maxMaterialIndex - 1);
+						ImGui::SliderInt(label.c_str(), &matIndex, 0, maxMaterialIndex - 1);
+					}
+				}
+
+				if (!objects[i].overrideMaterialIndex.empty()) {
+					if (ImGui::Button("Clear All Overrides")) {
+						objects[i].overrideMaterialIndex.clear();
+					}
+				}
+				else {
+					if (ImGui::Button("Override All Materials")) {
+						objects[i].overrideMaterialIndex.resize(meshCount, -1);
+						for (int j = 0; j < meshCount; j++) {
+							objects[i].overrideMaterialIndex[j] = model.material[j];
+						}
+					}
+				}
+			}
+
+			ImGui::TreePop();
+			if (ImGui::Button("Remove Object")) {
+				objects.erase(objects.begin() + i);
+				ImGui::PopID();
+				break;
+			}
+		}
+		ImGui::PopID();
+	}
 
      ImGui::End();
 
      ImGui::Render();
      ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
  }
-
-//void GuiRenderer::newFrame() {
-//	ImGui_ImplVulkan_NewFrame();
-//	ImGui_ImplGlfw_NewFrame();
-//	ImGui::NewFrame();
-//
-//	if (!m_dockLayoutBuilt) {
-//		setupDockspace();
-//		m_dockLayoutBuilt = true;
-//	}
-//}
-//
-//void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd) {
-//    static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
-//
-//    ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-//    const ImGuiViewport* viewport = ImGui::GetMainViewport();
-//
-//    ImGui::SetNextWindowPos(viewport->WorkPos);
-//    ImGui::SetNextWindowSize(viewport->WorkSize);
-//    ImGui::SetNextWindowViewport(viewport->ID);
-//    window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | 
-//                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-//    window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-//
-//    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-//    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-//
-//    ImGui::Begin("DockSpace Demo", nullptr, window_flags);
-//    ImGui::PopStyleVar(2);
-//
-//    ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
-//    ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
-//    ImGui::End();
-//
-//    ImGui::Begin("Viewport");
-//    m_viewportSize = ImGui::GetContentRegionAvail();
-//    //ImGui::Image(m_viewPortDescriptorSet[currentFrame], m_viewportSize);
-//	ImGui::Image((ImTextureID)(uint64_t)m_viewPortDescriptorSet[currentFrame], m_viewportSize);
-//
-//
-//
-//    ImGui::End();
-//
-//    ImGui::Begin("Hierarchy");
-//    ImGui::Text("Objects");
-//    ImGui::End();
-//
-//    ImGui::Render();
-//    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
-//}
-//
-//void GuiRenderer::setupDockspace() {
-//    ImGui::Begin("Viewport");
-//    ImGui::End();
-//
-//    ImGui::Begin("Hierarchy");
-//    ImGui::End();
-//
-//	const ImGuiViewport* viewport = ImGui::GetMainViewport();
-//	ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
-//
-//	ImGui::DockBuilderRemoveNode(dockspace_id);
-//	ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
-//	ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
-//
-//	ImGuiID dock_main_id = dockspace_id;
-//	ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.2f, nullptr, &dock_main_id);
-//	ImGui::DockBuilderDockWindow("Hierarchy", dock_id_left);
-//	ImGui::DockBuilderDockWindow("Viewport", dock_main_id);
-//
-//	ImGui::DockBuilderFinish(dockspace_id);
-//}
-
-
 
 void GuiRenderer::createViewPortDescriptorSet(std::array<Texture*, 2> textures) {
     m_viewPortDescriptorSet.resize(textures.size());

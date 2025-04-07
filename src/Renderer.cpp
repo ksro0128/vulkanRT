@@ -596,7 +596,7 @@ void Renderer::recordImGuiCommandBuffer(uint32_t imageIndex) {
 
 	vkCmdBeginRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 	m_guiRenderer->newFrame();
-	m_guiRenderer->render(currentFrame, m_commandBuffers->getCommandBuffers()[currentFrame], m_scene.get());
+	m_guiRenderer->render(currentFrame, m_commandBuffers->getCommandBuffers()[currentFrame], m_scene.get(), m_modelList);
 	vkCmdEndRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame]);
 }
 

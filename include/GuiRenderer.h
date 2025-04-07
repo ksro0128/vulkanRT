@@ -6,6 +6,7 @@
 #include "SwapChain.h"
 #include "Texture.h"
 #include "Scene.h"
+#include "Model.h"
 #include "VulkanUtil.h"
 
 class GuiRenderer {
@@ -14,7 +15,7 @@ public:
     ~GuiRenderer();
 
     void newFrame();
-    void render(uint32_t currentFrame, VkCommandBuffer cmd, Scene* scene);
+    void render(uint32_t currentFrame, VkCommandBuffer cmd, Scene* scene, std::vector<Model>& modelList);
     void createViewPortDescriptorSet(std::array<Texture*, 2> textures);
     ImVec2 getViewportSize() const { return m_viewportSize; }
 
