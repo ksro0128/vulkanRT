@@ -10,10 +10,16 @@ App::~App() {
 
 void App::run() {
 	std::cout << "App::run" << std::endl;
+	auto lastTime = std::chrono::high_resolution_clock::now();
 
 	while (!glfwWindowShouldClose(m_window->getWindow())) {
+
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+		lastTime = currentTime;
+
 		glfwPollEvents();
-		m_renderer->update();
+		m_renderer->update(deltaTime);
 		m_renderer->render();
 	}
 }

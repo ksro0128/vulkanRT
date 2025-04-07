@@ -5,6 +5,7 @@
 #include "RenderPass.h"
 #include "SwapChain.h"
 #include "Texture.h"
+#include "Scene.h"
 #include "VulkanUtil.h"
 
 class GuiRenderer {
@@ -13,9 +14,8 @@ public:
     ~GuiRenderer();
 
     void newFrame();
-    void render(uint32_t currentFrame, VkCommandBuffer cmd);
+    void render(uint32_t currentFrame, VkCommandBuffer cmd, Scene* scene);
     void createViewPortDescriptorSet(std::array<Texture*, 2> textures);
-    void beginDockspace();
     ImVec2 getViewportSize() const { return m_viewportSize; }
 
 private:
@@ -29,5 +29,5 @@ private:
     void createDescriptorPool();
     void cleanup();
     void setDarkThemeColors();
-    void setupDockspace();
+    //void setupDockspace();
 };

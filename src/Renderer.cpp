@@ -28,8 +28,6 @@ void Renderer::init(GLFWwindow* window) {
 
 	createDefaultModels();
 
-	// loadModel("./assets/models/lion_head_1k.gltf/lion_head_1k.gltf");
-	// loadModel("./assets/models/Camera_01_1k.gltf/Camera_01_1k.gltf");
 	loadModel("./assets/materials/aerial_grass_rock_1k.gltf/aerial_grass_rock_1k.gltf");
 	loadModel("./assets/materials/aerial_rocks_02_1k.gltf/aerial_rocks_02_1k.gltf");
 	loadModel("./assets/materials/asphalt_02_1k.gltf/asphalt_02_1k.gltf");
@@ -38,13 +36,15 @@ void Renderer::init(GLFWwindow* window) {
 	loadModel("./assets/materials/brown_mud_leaves_01_1k.gltf/brown_mud_leaves_01_1k.gltf");
 	loadModel("./assets/materials/plywood_1k.gltf/plywood_1k.gltf");
 	loadModel("./assets/materials/fabric_pattern_07_1k.gltf/fabric_pattern_07_1k.gltf");
-
+	loadModel("./assets/models/lion_head_1k.gltf/lion_head_1k.gltf");
+	loadModel("./assets/models/Camera_01_1k.gltf/Camera_01_1k.gltf");
 
 
 	// descriptorset layout
 	m_globalLayout = DescriptorSetLayout::createGlobalDescriptorSetLayout(m_context.get());
 	m_objectMaterialLayout = DescriptorSetLayout::createObjectMaterialDescriptorSetLayout(m_context.get());
 	m_bindlessLayout = DescriptorSetLayout::createBindlessDescriptorSetLayout(m_context.get());
+	m_attachmentLayout = DescriptorSetLayout::createAttachmentDescriptorSetLayout(m_context.get());
 
 
 	// buffers
@@ -56,16 +56,10 @@ void Renderer::init(GLFWwindow* window) {
 		m_materialBuffers[i] = StorageBuffer::createStorageBuffer(m_context.get(), sizeof(Material) * MAX_MATERIAL_COUNT * 2);
 	}
 
-	// descriptorset
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		m_globlaDescSets[i] = DescriptorSet::createGlobalDescriptorSet(m_context.get(), m_globalLayout.get(), m_cameraBuffers[i].get(), m_lightBuffers[i].get());
-		m_objectMaterialDescSets[i] = DescriptorSet::createObjectMaterialDescriptorSet(m_context.get(), m_objectMaterialLayout.get(), m_objectInstanceBuffers[i].get());
-		m_bindlessDescSets[i] = DescriptorSet::createBindlessDescriptorSet(m_context.get(), m_bindlessLayout.get(), m_modelBuffers[i].get(), m_materialBuffers[i].get(), m_textureList);
-	}
-
-	//renderpass
+	// renderpass
 	m_gbufferRenderPass = RenderPass::createGbufferRenderPass(m_context.get());
 	m_imguiRenderPass = RenderPass::createImGuiRenderPass(m_context.get(), m_swapChain.get());
+	m_lightPassRenderPass = RenderPass::createLightPassRenderPass(m_context.get());
 
 	// attachment
 	m_gbufferAttachments.resize(MAX_FRAMES_IN_FLIGHT);
@@ -77,10 +71,18 @@ void Renderer::init(GLFWwindow* window) {
 		m_gbufferAttachments[i].depth = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 	}
 
-	m_gbufferFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+	m_outputTextures.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		m_outputTextures[i] = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+	}
+
+
 	// framebuffer
+	m_gbufferFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+	m_outputFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		m_gbufferFrameBuffers[i] = FrameBuffer::createGbufferFrameBuffer(m_context.get(), m_gbufferRenderPass.get(), m_gbufferAttachments[i], m_extent);
+		m_outputFrameBuffers[i] = FrameBuffer::createOutputFrameBuffer(m_context.get(), m_lightPassRenderPass.get(), m_outputTextures[i].get(), m_extent);
 	}
 
 	m_imguiFrameBuffers.resize(m_swapChain->getSwapChainImages().size());
@@ -88,18 +90,31 @@ void Renderer::init(GLFWwindow* window) {
 		m_imguiFrameBuffers[i] = FrameBuffer::createImGuiFrameBuffer(m_context.get(), m_imguiRenderPass.get(), m_swapChain->getSwapChainImageViews()[i], m_swapChain->getSwapChainExtent());
 	}
 
+
+	// descriptorset
+	m_attachmentDescSets.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		m_globlaDescSets[i] = DescriptorSet::createGlobalDescriptorSet(m_context.get(), m_globalLayout.get(), m_cameraBuffers[i].get(), m_lightBuffers[i].get());
+		m_objectMaterialDescSets[i] = DescriptorSet::createObjectMaterialDescriptorSet(m_context.get(), m_objectMaterialLayout.get(), m_objectInstanceBuffers[i].get());
+		m_bindlessDescSets[i] = DescriptorSet::createBindlessDescriptorSet(m_context.get(), m_bindlessLayout.get(), m_modelBuffers[i].get(), m_materialBuffers[i].get(), m_textureList);
+		m_attachmentDescSets[i] = DescriptorSet::createAttachmentDescriptorSet(m_context.get(), m_attachmentLayout.get(), m_gbufferAttachments[i]);
+	}
+
+
+
 	// pipeline
 	m_gbufferPipeline = Pipeline::createGbufferPipeline(m_context.get(), m_gbufferRenderPass.get(), {m_globalLayout.get(), m_objectMaterialLayout.get(), m_bindlessLayout.get()});
+	m_lightPassPipeline = Pipeline::createLightPassPipeline(m_context.get(), m_lightPassRenderPass.get(), { m_globalLayout.get(), m_attachmentLayout.get()});
 
 	printAllResources();
 
 
 	// gui renderer
 	m_guiRenderer = GuiRenderer::createGuiRenderer(m_context.get(), window, m_imguiRenderPass.get(), m_swapChain.get());
-	m_guiRenderer->createViewPortDescriptorSet({m_gbufferAttachments[0].albedo.get(), m_gbufferAttachments[1].albedo.get()});
+	m_guiRenderer->createViewPortDescriptorSet({m_outputTextures[0].get(), m_outputTextures[1].get()});
 
 
-	scene();
+	m_scene = Scene::createScene(m_modelList.size(), m_materialList.size(), m_textureList.size());
 
 	//descriptor set update
 
@@ -114,8 +129,8 @@ void Renderer::init(GLFWwindow* window) {
 
 }
 
-void Renderer::update() {
-
+void Renderer::update(float deltaTime) {
+	updateCamera(deltaTime);
 }
 
 void Renderer::render() {
@@ -155,18 +170,59 @@ void Renderer::render() {
 	recordGbufferCommandBuffer();
 
 	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].albedo.get(), 
-	VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
-	VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, 
-	VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, 
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].normal.get()
+		, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].position.get()
+		, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].pbr.get()
+		, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 	
+	recordLightPassCommandBuffer();
+
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].albedo.get(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].normal.get(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].position.get(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].pbr.get(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
+
+
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_outputTextures[currentFrame].get(),
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+
 	
 	recordImGuiCommandBuffer(imageIndex);
 
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_outputTextures[currentFrame].get(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
-	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].albedo.get(), 
-	VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
-	VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 
-	VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
+
 	// end
 
 	if (vkEndCommandBuffer(m_commandBuffers->getCommandBuffers()[currentFrame]) != VK_SUCCESS) {
@@ -227,25 +283,9 @@ void Renderer::recreateSwapChain() {
 	}
 
 	m_imguiFrameBuffers.clear();
-	// m_gbufferFrameBuffers.clear();
-	// m_gbufferAttachments.clear();
 	m_swapChain.reset();
 	m_swapChain = SwapChain::createSwapChain(window, m_context.get());
-	// m_extent = m_swapChain->getSwapChainExtent();
 
-	// m_gbufferAttachments.resize(MAX_FRAMES_IN_FLIGHT);
-	// for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-	// 	m_gbufferAttachments[i].albedo = Texture::createAttachmentTexture(m_context.get(), m_swapChain->getSwapChainExtent().width, m_swapChain->getSwapChainExtent().height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
-	// 	m_gbufferAttachments[i].normal = Texture::createAttachmentTexture(m_context.get(), m_swapChain->getSwapChainExtent().width, m_swapChain->getSwapChainExtent().height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
-	// 	m_gbufferAttachments[i].position = Texture::createAttachmentTexture(m_context.get(), m_swapChain->getSwapChainExtent().width, m_swapChain->getSwapChainExtent().height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
-	// 	m_gbufferAttachments[i].pbr = Texture::createAttachmentTexture(m_context.get(), m_swapChain->getSwapChainExtent().width, m_swapChain->getSwapChainExtent().height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
-	// 	m_gbufferAttachments[i].depth = Texture::createAttachmentTexture(m_context.get(), m_swapChain->getSwapChainExtent().width, m_swapChain->getSwapChainExtent().height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
-	// }
-
-	// m_gbufferFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-	// for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-	// 	m_gbufferFrameBuffers[i] = FrameBuffer::createGbufferFrameBuffer(m_context.get(), m_gbufferRenderPass.get(), m_gbufferAttachments[i], m_extent);
-	// }
 
 	m_imguiFrameBuffers.resize(m_swapChain->getSwapChainImages().size());
 	for (int i = 0; i < m_swapChain->getSwapChainImages().size(); i++) {
@@ -253,7 +293,6 @@ void Renderer::recreateSwapChain() {
 
 	}
 
-	// m_guiRenderer->createViewPortDescriptorSet({m_gbufferAttachments[0].albedo.get(), m_gbufferAttachments[1].albedo.get()});
 }
 
 void Renderer::recreateViewport(ImVec2 newExtent) {
@@ -268,6 +307,10 @@ void Renderer::recreateViewport(ImVec2 newExtent) {
 
 	m_extent.width = static_cast<uint32_t>(newExtent.x);
 	m_extent.height = static_cast<uint32_t>(newExtent.y);
+	
+	m_outputFrameBuffers.clear();
+	m_outputTextures.clear();
+	m_attachmentDescSets.clear();
 	m_gbufferFrameBuffers.clear();
 	m_gbufferAttachments.clear();
 
@@ -285,7 +328,24 @@ void Renderer::recreateViewport(ImVec2 newExtent) {
 		m_gbufferFrameBuffers[i] = FrameBuffer::createGbufferFrameBuffer(m_context.get(), m_gbufferRenderPass.get(), m_gbufferAttachments[i], m_extent);
 	}
 
-	m_guiRenderer->createViewPortDescriptorSet({m_gbufferAttachments[0].albedo.get(), m_gbufferAttachments[1].albedo.get()});
+	m_attachmentDescSets.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		m_attachmentDescSets[i] = DescriptorSet::createAttachmentDescriptorSet(m_context.get(), m_attachmentLayout.get(), m_gbufferAttachments[i]);
+	}
+
+	m_outputTextures.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		m_outputTextures[i] = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+	}
+
+	m_outputFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		m_outputFrameBuffers[i] = FrameBuffer::createOutputFrameBuffer(m_context.get(), m_lightPassRenderPass.get(), m_outputTextures[i].get(), m_extent);
+	}
+
+
+	m_guiRenderer->createViewPortDescriptorSet({ m_outputTextures[0].get(), m_outputTextures[1].get() });
+
 }
 
 void Renderer::createDefaultModels()
@@ -406,10 +466,11 @@ void Renderer::recordGbufferCommandBuffer() {
 
 	// camera buffer update
 	CameraBuffer cameraBuffer{};
-	cameraBuffer.view = glm::lookAt(m_cameraPos, m_cameraPos + m_cameraFront, glm::vec3(0.0f, 1.0f, 0.0f));
+	cameraBuffer.view = glm::lookAt(m_camera.position, m_camera.position + m_camera.front, m_camera.up);
 	cameraBuffer.proj = glm::perspective(glm::radians(45.0f), (float)m_extent.width / (float)m_extent.height, 0.1f, 100.0f);
-	cameraBuffer.proj[1][1] *= -1; // flip Y axis
-	cameraBuffer.camPos = m_cameraPos;
+	cameraBuffer.proj[1][1] *= -1;
+	cameraBuffer.camPos = m_camera.position;
+
 	m_cameraBuffers[currentFrame]->updateUniformBuffer(&cameraBuffer, sizeof(CameraBuffer));
 
 	// bind descriptor sets
@@ -417,24 +478,35 @@ void Renderer::recordGbufferCommandBuffer() {
 	vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbufferPipeline->getPipelineLayout(), 1, 1, &m_objectMaterialDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
 	vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbufferPipeline->getPipelineLayout(), 2, 1, &m_bindlessDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
 	
-	std::unordered_map<int32_t, std::vector<int32_t>> objectMap;
-	std::vector<ModelBuffer> modelBuffers(m_objects.size());
-	for (int32_t i = 0; i < m_objects.size(); i++) {
-		objectMap[m_objects[i].modelIndex].push_back(i);
-		modelBuffers[i].model = m_objects[i].transform;
-	}
-	m_modelBuffers[currentFrame]->updateStorageBuffer(&modelBuffers[0], sizeof(ModelBuffer) * m_objects.size());
 
+
+	auto& objects = m_scene->getObjects();
+	std::unordered_map<int32_t, std::vector<int32_t>> objectMap;
+	std::vector<ModelBuffer> modelBuffers(objects.size());
+	for (int32_t i = 0; i < objects.size(); i++) {
+		objectMap[objects[i].modelIndex].push_back(i);
+
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::translate(model, objects[i].position);
+		model = glm::rotate(model, glm::radians(objects[i].rotation.x), glm::vec3(1, 0, 0));
+		model = glm::rotate(model, glm::radians(objects[i].rotation.y), glm::vec3(0, 1, 0));
+		model = glm::rotate(model, glm::radians(objects[i].rotation.z), glm::vec3(0, 0, 1));
+		model = glm::scale(model, objects[i].scale);
+		modelBuffers[i].model = model;
+	}
+	if (!modelBuffers.empty()) {
+		m_modelBuffers[currentFrame]->updateStorageBuffer(&modelBuffers[0], sizeof(ModelBuffer) * modelBuffers.size());
+	}
 	std::vector<ObjectInstance> objectInstances;
-	objectInstances.reserve(m_objects.size() * 16);
+	objectInstances.reserve(objects.size() * 16);
 	int32_t index = 0;
 	for (const auto& [key, value] : objectMap) {
 		for (int32_t i = 0; i < m_modelList[key].mesh.size(); i++) {
 			int32_t startIndex = index;
 			for (int32_t j = 0; j < value.size(); j++) {
 				int32_t materialIndex;
-				if (m_objects[value[j]].overrideMaterialIndex.size() > i) {
-					materialIndex = m_objects[value[j]].overrideMaterialIndex[i];
+				if (objects[value[j]].overrideMaterialIndex.size() > i) {
+					materialIndex = objects[value[j]].overrideMaterialIndex[i];
 				}
 				else {
 					materialIndex = m_modelList[key].material[i];
@@ -445,10 +517,68 @@ void Renderer::recordGbufferCommandBuffer() {
 			m_meshList[m_modelList[key].mesh[i]]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], value.size(), startIndex);
 		}
 	}
-	m_objectInstanceBuffers[currentFrame]->updateStorageBuffer(&objectInstances[0], sizeof(ObjectInstance) * objectInstances.size());
-	
+	if (!objectInstances.empty()) {
+		m_objectInstanceBuffers[currentFrame]->updateStorageBuffer(&objectInstances[0], sizeof(ObjectInstance) * objectInstances.size());
+	}
+
 	vkCmdEndRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame]);
 }
+
+void Renderer::recordLightPassCommandBuffer() {
+	VkClearValue clearValue{};
+	clearValue.color = { {0.0f, 1.0f, 0.0f, 1.0f} };
+
+	VkRenderPassBeginInfo renderPassInfo{};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassInfo.renderPass = m_lightPassRenderPass->getRenderPass();
+	renderPassInfo.framebuffer = m_outputFrameBuffers[currentFrame]->getFrameBuffer();
+	renderPassInfo.renderArea.offset = { 0, 0 };
+	renderPassInfo.renderArea.extent = m_extent;
+	renderPassInfo.clearValueCount = 1;
+	renderPassInfo.pClearValues = &clearValue;
+
+	vkCmdBeginRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	VkViewport viewport{};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = static_cast<float>(m_extent.width);
+	viewport.height = static_cast<float>(m_extent.height);
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+	vkCmdSetViewport(m_commandBuffers->getCommandBuffers()[currentFrame], 0, 1, &viewport);
+
+	VkRect2D scissor{};
+	scissor.offset = { 0, 0 };
+	scissor.extent = m_extent;
+	vkCmdSetScissor(m_commandBuffers->getCommandBuffers()[currentFrame], 0, 1, &scissor);
+
+	vkCmdBindPipeline(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_lightPassPipeline->getPipeline());
+
+	VkDescriptorSet sets[] = {
+		m_globlaDescSets[currentFrame]->getDescriptorSet(),
+		m_attachmentDescSets[currentFrame]->getDescriptorSet()
+	};
+	vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_lightPassPipeline->getPipelineLayout(), 0, 2, sets, 0, nullptr);
+
+	LightBuffer lightBuffer;
+	memset(&lightBuffer, 0, sizeof(LightBuffer));
+	auto& lights = m_scene->getLights();
+	for (uint32_t i = 0; i < lights.size(); i++) {
+		lightBuffer.lights[i] = lights[i];
+	}
+	lightBuffer.ambientColor = m_scene->getAmbientColor();
+	lightBuffer.lightCount = static_cast<uint32_t>(lights.size());
+
+	m_lightBuffers[currentFrame]->updateStorageBuffer(&lightBuffer, sizeof(LightBuffer));
+
+
+	vkCmdDraw(m_commandBuffers->getCommandBuffers()[currentFrame], 6, 1, 0, 0);
+
+	vkCmdEndRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame]);
+}
+
+
 
 void Renderer::recordImGuiCommandBuffer(uint32_t imageIndex) {
 	VkRenderPassBeginInfo renderPassInfo{};
@@ -466,82 +596,8 @@ void Renderer::recordImGuiCommandBuffer(uint32_t imageIndex) {
 
 	vkCmdBeginRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 	m_guiRenderer->newFrame();
-	m_guiRenderer->render(currentFrame, m_commandBuffers->getCommandBuffers()[currentFrame]);
+	m_guiRenderer->render(currentFrame, m_commandBuffers->getCommandBuffers()[currentFrame], m_scene.get());
 	vkCmdEndRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame]);
-}
-
-
-void Renderer::scene() {
-	m_objects.clear();
-
-	// cam
-	glm::vec3 camPos = glm::vec3(0.0f, 0.0f, 5.0f);
-	glm::vec3 camFront = glm::vec3(0.0f, 0.0f, -1.0f);
-	glm::vec3 camUp = glm::vec3(0.0f, 1.0f, 0.0f);
-
-	{
-		Object obj;
-		obj.modelIndex = 0;
-		obj.transform = glm::translate(glm::mat4(1.0f), glm::vec3(-1.1f, 1.1f, 0.0f));
-		obj.overrideMaterialIndex.push_back(0);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 0;
-		obj.transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.1f, 0.0f));
-		obj.overrideMaterialIndex.push_back(1);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 0;
-		obj.transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.1f, 1.1f, 0.0f));
-		obj.overrideMaterialIndex.push_back(2);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 0;
-		obj.transform = glm::translate(glm::mat4(1.0f), glm::vec3(-1.1f, 0.0f, 0.0f));
-		obj.overrideMaterialIndex.push_back(3);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 0;
-		obj.transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-		obj.overrideMaterialIndex.push_back(4);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 0;
-		obj.transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.1f, 0.0f, 0.0f));
-		obj.overrideMaterialIndex.push_back(5);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 0;
-		obj.transform = glm::translate(glm::mat4(1.0f), glm::vec3(-1.1f, -1.1f, 0.0f));
-		obj.overrideMaterialIndex.push_back(6);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 0;
-		obj.transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.1f, 0.0f));
-		obj.overrideMaterialIndex.push_back(7);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 0;
-		obj.transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.1f, -1.1f, 0.0f));
-		obj.overrideMaterialIndex.push_back(8);
-		m_objects.push_back(obj);
-	}
 }
 
 void Renderer::transferImageLayout( VkCommandBuffer cmd, Texture* texture, VkImageLayout oldLayout, VkImageLayout newLayout,
@@ -573,4 +629,57 @@ void Renderer::transferImageLayout( VkCommandBuffer cmd, Texture* texture, VkIma
 		0, nullptr,
 		1, &barrier
 	);
+}
+
+
+void Renderer::updateCamera(float deltaTime) {
+
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+		double xpos, ypos;
+		glfwGetCursorPos(window, &xpos, &ypos);
+
+		if (!m_mousePressed) {
+			m_mousePressed = true;
+			m_lastMouseX = xpos;
+			m_lastMouseY = ypos;
+		}
+
+		float xoffset = static_cast<float>(xpos - m_lastMouseX);
+		float yoffset = static_cast<float>(m_lastMouseY - ypos);
+
+		m_lastMouseX = xpos;
+		m_lastMouseY = ypos;
+
+		xoffset *= m_mouseSensitivity;
+		yoffset *= m_mouseSensitivity;
+
+		m_yaw += xoffset;
+		m_pitch += yoffset;
+
+		m_pitch = std::clamp(m_pitch, -89.0f, 89.0f);
+
+		glm::vec3 direction;
+		direction.x = cos(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
+		direction.y = sin(glm::radians(m_pitch));
+		direction.z = sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
+		m_camera.front = glm::normalize(direction);
+	}
+	else {
+		m_mousePressed = false;
+	}
+
+	glm::vec3 right = glm::normalize(glm::cross(m_camera.front, m_camera.up));
+	glm::vec3 move = glm::vec3(0.0f);
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) move += m_camera.front;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) move -= m_camera.front;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) move -= right;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) move += right;
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) move -= m_camera.up;
+	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) move += m_camera.up;
+
+	if (glm::length(move) > 0.0f) {
+		move = glm::normalize(move);
+		m_camera.position += move * m_moveSpeed * deltaTime;
+	}
 }

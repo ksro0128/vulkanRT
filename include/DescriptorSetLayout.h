@@ -8,6 +8,7 @@ public:
 	static std::unique_ptr<DescriptorSetLayout> createGlobalDescriptorSetLayout(VulkanContext* context);
 	static std::unique_ptr<DescriptorSetLayout> createObjectMaterialDescriptorSetLayout(VulkanContext* context);
 	static std::unique_ptr<DescriptorSetLayout> createBindlessDescriptorSetLayout(VulkanContext* context);
+	static std::unique_ptr<DescriptorSetLayout> createAttachmentDescriptorSetLayout(VulkanContext* context);
 
 	~DescriptorSetLayout();
 
@@ -20,5 +21,6 @@ private:
 	void initGlobal(VulkanContext* context);
 	void initObjectMaterial(VulkanContext* context);
 	void initBindless(VulkanContext* context);
+	void initAttachment(VulkanContext* context);
 	void cleanup();
 };

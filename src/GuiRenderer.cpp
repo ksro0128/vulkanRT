@@ -81,131 +81,233 @@ void GuiRenderer::createDescriptorPool() {
 	}
 }
 
-// void GuiRenderer::newFrame() {
-// 	ImGui_ImplVulkan_NewFrame();
-// 	ImGui_ImplGlfw_NewFrame();
-// 	ImGui::NewFrame();
-// }
+ void GuiRenderer::newFrame() {
+ 	ImGui_ImplVulkan_NewFrame();
+ 	ImGui_ImplGlfw_NewFrame();
+ 	ImGui::NewFrame();
+ }
 
-// void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd) {
-//     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scene) {
+     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 
-//     ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-//     const ImGuiViewport* viewport = ImGui::GetMainViewport();
+     ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+     const ImGuiViewport* viewport = ImGui::GetMainViewport();
 
-//     ImGui::SetNextWindowPos(viewport->WorkPos);
-//     ImGui::SetNextWindowSize(viewport->WorkSize);
-//     ImGui::SetNextWindowViewport(viewport->ID);
-//     window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | 
-//                     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-//     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+     ImGui::SetNextWindowPos(viewport->WorkPos);
+     ImGui::SetNextWindowSize(viewport->WorkSize);
+     ImGui::SetNextWindowViewport(viewport->ID);
+     window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | 
+                     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
-//     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-//     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-//     ImGui::Begin("DockSpace Demo", nullptr, window_flags);
-//     ImGui::PopStyleVar(2);
+     ImGui::Begin("DockSpace Demo", nullptr, window_flags);
+     ImGui::PopStyleVar(2);
 
-//     ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
-//     if (!m_dockLayoutBuilt) {
-//         std::cout << "setupDockspace" << std::endl;
-//         ImGui::DockBuilderRemoveNode(dockspace_id);
-//         ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
-//         ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
+     ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+     if (!m_dockLayoutBuilt) {
+         std::cout << "setupDockspace" << std::endl;
+         ImGui::DockBuilderRemoveNode(dockspace_id);
+         ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
+         ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
 
-//         ImGuiID dock_main_id = dockspace_id;
-//         ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.2f, nullptr, &dock_main_id);
-//         ImGui::DockBuilderDockWindow("Hierarchy", dock_id_left);
-//         ImGui::DockBuilderDockWindow("Viewport", dock_main_id);
+         ImGuiID dock_main_id = dockspace_id;
+         ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.2f, nullptr, &dock_main_id);
+         ImGui::DockBuilderDockWindow("Scene", dock_id_left);
+         ImGui::DockBuilderDockWindow("Viewport", dock_main_id);
 
-//         ImGui::DockBuilderFinish(dockspace_id);
-//         m_dockLayoutBuilt = true;
-//     }
+         ImGui::DockBuilderFinish(dockspace_id);
+         m_dockLayoutBuilt = true;
+     }
 
-//     ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
-//     ImGui::End();
+     ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+     ImGui::End();
 
-//     ImGui::Begin("Viewport");
-//     m_viewportSize = ImGui::GetContentRegionAvail();
-//     ImGui::Image(m_viewPortDescriptorSet[currentFrame], m_viewportSize);
-//     ImGui::End();
 
-//     ImGui::Begin("Hierarchy");
-//     ImGui::Text("Objects");
-//     ImGui::End();
+	 // Viewport
+     ImGui::Begin("Viewport");
+     m_viewportSize = ImGui::GetContentRegionAvail();
+     //ImGui::Image(m_viewPortDescriptorSet[currentFrame], m_viewportSize);
+	 ImGui::Image((ImTextureID)(uint64_t)m_viewPortDescriptorSet[currentFrame], m_viewportSize);
+     ImGui::End();
 
-//     ImGui::Render();
-//     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
-// }
+     
+	 
+	 // Scene
+	 ImGui::Begin("Scene");
 
-void GuiRenderer::newFrame() {
-	ImGui_ImplVulkan_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
+	 if (ImGui::Button("Add Light")) {
+		 Light newLight{};
+		 newLight.type = 0; // Directional
+		 newLight.direction = glm::vec3(0.0f, -1.0f, 0.0f);
+		 newLight.color = glm::vec3(1.0f);
+		 newLight.intensity = 1.0f;
+		 newLight.range = 10.0f;
+		 newLight.position = glm::vec3(0.0f);
+		 newLight.spotInnerAngle = 30.0f;
+		 newLight.spotOuterAngle = 45.0f;
+		 scene->getLights().push_back(newLight);
+	 }
+	 ImGui::SameLine();
+	 if (ImGui::Button("Add Object")) {
+		 Object newObj;
+		 newObj.modelIndex = 0;
+		 newObj.position = glm::vec3(0.0f);
+		 newObj.rotation = glm::vec3(0.0f);
+		 newObj.scale = glm::vec3(1.0f);
 
-	if (!m_dockLayoutBuilt) {
-		setupDockspace();
-		m_dockLayoutBuilt = true;
-	}
-}
+		 if (scene->getMaxMaterialIndex() > 0)
+			 newObj.overrideMaterialIndex.push_back(0);
 
-void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd) {
-    static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+		 scene->getObjects().push_back(newObj);
+	 }
+	 
 
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+	 auto& lights = scene->getLights();
+	 ImGui::ColorEdit3("Ambient Color", glm::value_ptr(scene->getAmbientColor()));
+	 int id = 0;
+	 for (int i = 0; i < lights.size(); i++) {
+		 ImGui::PushID(id++);
+		 if (ImGui::TreeNode(("Light " + std::to_string(i)).c_str())) {
+			 ImGui::Combo("Type", &lights[i].type, "Directional\0Point\0Spot\0");
+			 ImGui::DragFloat3("Position", glm::value_ptr(lights[i].position), 0.1f);
+			 ImGui::DragFloat3("Direction", glm::value_ptr(lights[i].direction), 0.1f);
+			 ImGui::ColorEdit3("Color", glm::value_ptr(lights[i].color));
+			 ImGui::DragFloat("Intensity", &lights[i].intensity, 0.1f, 0.0f, 10.0f);
+			 ImGui::DragFloat("Range", &lights[i].range, 0.1f, 0.0f, 10.0f);
+			 ImGui::DragFloat("Spot Inner", &lights[i].spotInnerAngle, 1.0f, 0.0f, 90.0f);
+			 ImGui::DragFloat("Spot Outer", &lights[i].spotOuterAngle, 1.0f, 0.0f, 90.0f);
+			 ImGui::TreePop();
 
-    ImGui::SetNextWindowPos(viewport->WorkPos);
-    ImGui::SetNextWindowSize(viewport->WorkSize);
-    ImGui::SetNextWindowViewport(viewport->ID);
-    window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | 
-                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-    window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+			 if (ImGui::Button("Remove Light")) {
+				 lights.erase(lights.begin() + i);
+				 ImGui::PopID();
+				 break;
+			 }
+		 }
+		 ImGui::PopID();
+	 }
 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	 auto& objects = scene->getObjects();
+	 uint32_t maxModelIndex = scene->getMaxModelIndex();
+	 uint32_t maxMaterialIndex = scene->getMaxMaterialIndex();
 
-    ImGui::Begin("DockSpace Demo", nullptr, window_flags);
-    ImGui::PopStyleVar(2);
+	 for (int i = 0; i < objects.size(); i++) {
+		 ImGui::PushID(id++);
+		 if (ImGui::TreeNode(("Object " + std::to_string(i)).c_str())) {
+			 ImGui::DragFloat3("Position", glm::value_ptr(objects[i].position), 0.1f);
+			 ImGui::DragFloat3("Rotation", glm::value_ptr(objects[i].rotation), 1.0f);
+			 ImGui::DragFloat3("Scale", glm::value_ptr(objects[i].scale), 0.1f);
+			 // Model Index Combo
+			 std::vector<std::string> modelItems;
+			 for (uint32_t j = 0; j < maxModelIndex; j++)
+				 modelItems.push_back(std::to_string(j));
+			 std::vector<const char*> modelCStrs;
+			 for (auto& s : modelItems)
+				 modelCStrs.push_back(s.c_str());
 
-    ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
-    ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
-    ImGui::End();
+			 ImGui::Combo("Model Index", &objects[i].modelIndex, modelCStrs.data(), modelCStrs.size());
 
-    ImGui::Begin("Viewport");
-    m_viewportSize = ImGui::GetContentRegionAvail();
-    ImGui::Image(m_viewPortDescriptorSet[currentFrame], m_viewportSize);
-    ImGui::End();
+			 // Override Material Indices
+			 for (int j = 0; j < objects[i].overrideMaterialIndex.size(); j++) {
+				 std::string label = "Material[" + std::to_string(j) + "]";
+				 int& matIndex = objects[i].overrideMaterialIndex[j];
+				 matIndex = std::clamp(matIndex, 0, (int)maxMaterialIndex - 1);
+				 ImGui::SliderInt(label.c_str(), &matIndex, 0, maxMaterialIndex - 1);
+			 }
+			 ImGui::TreePop();
+			 if (ImGui::Button("Remove Object")) {
+				 objects.erase(objects.begin() + i);
+				 ImGui::PopID();
+				 break;
+			 }
+		 }
+		 ImGui::PopID();
+	 }
 
-    ImGui::Begin("Hierarchy");
-    ImGui::Text("Objects");
-    ImGui::End();
 
-    ImGui::Render();
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
-}
 
-void GuiRenderer::setupDockspace() {
-    ImGui::Begin("Viewport");
-    ImGui::End();
+     ImGui::End();
 
-    ImGui::Begin("Hierarchy");
-    ImGui::End();
+     ImGui::Render();
+     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+ }
 
-	const ImGuiViewport* viewport = ImGui::GetMainViewport();
-	ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+//void GuiRenderer::newFrame() {
+//	ImGui_ImplVulkan_NewFrame();
+//	ImGui_ImplGlfw_NewFrame();
+//	ImGui::NewFrame();
+//
+//	if (!m_dockLayoutBuilt) {
+//		setupDockspace();
+//		m_dockLayoutBuilt = true;
+//	}
+//}
+//
+//void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd) {
+//    static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+//
+//    ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+//    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+//
+//    ImGui::SetNextWindowPos(viewport->WorkPos);
+//    ImGui::SetNextWindowSize(viewport->WorkSize);
+//    ImGui::SetNextWindowViewport(viewport->ID);
+//    window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | 
+//                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+//    window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+//
+//    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+//    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+//
+//    ImGui::Begin("DockSpace Demo", nullptr, window_flags);
+//    ImGui::PopStyleVar(2);
+//
+//    ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+//    ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+//    ImGui::End();
+//
+//    ImGui::Begin("Viewport");
+//    m_viewportSize = ImGui::GetContentRegionAvail();
+//    //ImGui::Image(m_viewPortDescriptorSet[currentFrame], m_viewportSize);
+//	ImGui::Image((ImTextureID)(uint64_t)m_viewPortDescriptorSet[currentFrame], m_viewportSize);
+//
+//
+//
+//    ImGui::End();
+//
+//    ImGui::Begin("Hierarchy");
+//    ImGui::Text("Objects");
+//    ImGui::End();
+//
+//    ImGui::Render();
+//    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+//}
+//
+//void GuiRenderer::setupDockspace() {
+//    ImGui::Begin("Viewport");
+//    ImGui::End();
+//
+//    ImGui::Begin("Hierarchy");
+//    ImGui::End();
+//
+//	const ImGuiViewport* viewport = ImGui::GetMainViewport();
+//	ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+//
+//	ImGui::DockBuilderRemoveNode(dockspace_id);
+//	ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
+//	ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
+//
+//	ImGuiID dock_main_id = dockspace_id;
+//	ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.2f, nullptr, &dock_main_id);
+//	ImGui::DockBuilderDockWindow("Hierarchy", dock_id_left);
+//	ImGui::DockBuilderDockWindow("Viewport", dock_main_id);
+//
+//	ImGui::DockBuilderFinish(dockspace_id);
+//}
 
-	ImGui::DockBuilderRemoveNode(dockspace_id);
-	ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
-	ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
-
-	ImGuiID dock_main_id = dockspace_id;
-	ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.2f, nullptr, &dock_main_id);
-	ImGui::DockBuilderDockWindow("Hierarchy", dock_id_left);
-	ImGui::DockBuilderDockWindow("Viewport", dock_main_id);
-
-	ImGui::DockBuilderFinish(dockspace_id);
-}
 
 
 void GuiRenderer::createViewPortDescriptorSet(std::array<Texture*, 2> textures) {

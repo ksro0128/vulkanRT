@@ -6,7 +6,9 @@
 
 struct Object {
 	int32_t modelIndex = -1;
-	glm::mat4 transform = glm::mat4(1.0f);
+	glm::vec3 position = glm::vec3(0.0f);
+	glm::vec3 rotation = glm::vec3(0.0f);
+	glm::vec3 scale = glm::vec3(1.0f);
 	std::vector<int32_t> overrideMaterialIndex;
 };
 

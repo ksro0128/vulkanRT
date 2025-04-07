@@ -29,6 +29,12 @@ public:
 		const std::vector<std::unique_ptr<Texture>>& textureList
 	);
 
+	static std::unique_ptr<DescriptorSet> createAttachmentDescriptorSet(
+		VulkanContext* context,
+		DescriptorSetLayout* layout,
+		GbufferAttachment& gbufferAttachment
+	);
+
 	VkDescriptorSet& getDescriptorSet() { return m_descriptorSet; }
 
 	~DescriptorSet();
@@ -43,5 +49,6 @@ private:
 		StorageBuffer* objectInstanceBuffer);
 	void initBindless(VulkanContext* context, DescriptorSetLayout* layout, StorageBuffer* modelBuffer, StorageBuffer* materialBuffer,
 		const std::vector<std::unique_ptr<Texture>>& textureList);
+	void initAttachment(VulkanContext* context, DescriptorSetLayout* layout, GbufferAttachment& gbufferAttachment);
 	void cleanup();
 };

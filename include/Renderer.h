@@ -17,13 +17,14 @@
 #include "Pipeline.h"
 #include "CommandBuffers.h"
 #include "GuiRenderer.h"
+#include "Scene.h"
 
 class Renderer {
 public:
 	static std::unique_ptr<Renderer> createRenderer(GLFWwindow* window);
 	~Renderer();
 
-	void update();
+	void update(float deltaTime);
 	void render();
 private:
 	GLFWwindow* window;
@@ -44,34 +45,39 @@ private:
 	std::unique_ptr<DescriptorSetLayout> m_globalLayout;
 	std::unique_ptr<DescriptorSetLayout> m_objectMaterialLayout;
 	std::unique_ptr<DescriptorSetLayout> m_bindlessLayout;
+	std::unique_ptr<DescriptorSetLayout> m_attachmentLayout;
 
 	// buffer
 	std::array<std::unique_ptr<UniformBuffer>, MAX_FRAMES_IN_FLIGHT> m_cameraBuffers;
 	std::array<std::unique_ptr<StorageBuffer>, MAX_FRAMES_IN_FLIGHT> m_lightBuffers;
 	std::array<std::unique_ptr<StorageBuffer>, MAX_FRAMES_IN_FLIGHT> m_objectInstanceBuffers;
-
 	std::array<std::unique_ptr<StorageBuffer>, MAX_FRAMES_IN_FLIGHT> m_modelBuffers;
 	std::array<std::unique_ptr<StorageBuffer>, MAX_FRAMES_IN_FLIGHT> m_materialBuffers;
+
+	// renderpass
+	std::unique_ptr<RenderPass> m_gbufferRenderPass;
+	std::unique_ptr<RenderPass> m_imguiRenderPass;
+	std::unique_ptr<RenderPass> m_lightPassRenderPass;
+
+	// attachment
+	std::vector<GbufferAttachment> m_gbufferAttachments;
+	std::vector<std::unique_ptr<Texture>> m_outputTextures;
+
+	// framebuffer
+	std::vector<std::unique_ptr<FrameBuffer>> m_gbufferFrameBuffers;
+	std::vector<std::unique_ptr<FrameBuffer>> m_imguiFrameBuffers;
+	std::vector<std::unique_ptr<FrameBuffer>> m_outputFrameBuffers;
 
 	// descriptorset
 	std::array<std::unique_ptr<DescriptorSet>, MAX_FRAMES_IN_FLIGHT> m_globlaDescSets;
 	std::array<std::unique_ptr<DescriptorSet>, MAX_FRAMES_IN_FLIGHT> m_objectMaterialDescSets;
 	std::array<std::unique_ptr<DescriptorSet>, MAX_FRAMES_IN_FLIGHT> m_bindlessDescSets;
+	std::vector< std::unique_ptr<DescriptorSet> > m_attachmentDescSets;
 
-
-	// renderpass
-	std::unique_ptr<RenderPass> m_gbufferRenderPass;
-	std::unique_ptr<RenderPass> m_imguiRenderPass;
-
-	// attachment
-	std::vector<GbufferAttachment> m_gbufferAttachments;
-
-	// framebuffer
-	std::vector<std::unique_ptr<FrameBuffer>> m_gbufferFrameBuffers;
-	std::vector<std::unique_ptr<FrameBuffer>> m_imguiFrameBuffers;
 
 	// pipeline
 	std::unique_ptr<Pipeline> m_gbufferPipeline;
+	std::unique_ptr<Pipeline> m_lightPassPipeline;
 
 	// command buffer
 	std::unique_ptr<CommandBuffers> m_commandBuffers;
@@ -79,12 +85,17 @@ private:
 	// gui renderer
 	std::unique_ptr<GuiRenderer> m_guiRenderer;
 
-
 	// scene
-	std::vector<Object> m_objects;
-	glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, 5.0f);
-	glm::vec3 m_cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-	glm::vec3 m_cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+	std::unique_ptr<Scene> m_scene;
+
+	// camera
+	Camera m_camera;
+	bool m_mousePressed = false;
+	double m_lastMouseX = 0.0, m_lastMouseY = 0.0;
+	float m_yaw = -90.0f;
+	float m_pitch = 0.0f;
+	float m_mouseSensitivity = 0.2f;
+	float m_moveSpeed = 3.0f;
 
 
 	std::unique_ptr<ImageBuffer> tmp[30];
@@ -101,10 +112,12 @@ private:
 	void createDefaultModels();
 
 	void recordGbufferCommandBuffer();
+	void recordLightPassCommandBuffer();
 	void recordImGuiCommandBuffer(uint32_t imageIndex);
 
 	void printAllResources();
-	void scene();
 
 	void transferImageLayout(VkCommandBuffer cmd, Texture* texture, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage);
+
+	void updateCamera(float deltaTime);
 };

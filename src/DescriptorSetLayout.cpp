@@ -1,5 +1,17 @@
 #include "include/DescriptorSetLayout.h"
 
+DescriptorSetLayout::~DescriptorSetLayout() {
+	cleanup();
+}
+
+void DescriptorSetLayout::cleanup() {
+	std::cout << "DescriptorSetLayout::cleanup" << std::endl;
+	if (m_layout != VK_NULL_HANDLE) {
+		vkDestroyDescriptorSetLayout(context->getDevice(), m_layout, nullptr);
+		m_layout = VK_NULL_HANDLE;
+	}
+}
+
 std::unique_ptr<DescriptorSetLayout> DescriptorSetLayout::createGlobalDescriptorSetLayout(VulkanContext* context) {
 	std::unique_ptr<DescriptorSetLayout> layout = std::unique_ptr<DescriptorSetLayout>(new DescriptorSetLayout());
 	layout->initGlobal(context);
@@ -121,14 +133,33 @@ void DescriptorSetLayout::initBindless(VulkanContext* context) {
 	}
 }
 
-DescriptorSetLayout::~DescriptorSetLayout() {
-	cleanup();
+std::unique_ptr<DescriptorSetLayout> DescriptorSetLayout::createAttachmentDescriptorSetLayout(VulkanContext* context) {
+	std::unique_ptr<DescriptorSetLayout> layout = std::unique_ptr<DescriptorSetLayout>(new DescriptorSetLayout());
+	layout->initAttachment(context);
+	return layout;
 }
 
-void DescriptorSetLayout::cleanup() {
-	std::cout << "DescriptorSetLayout::cleanup" << std::endl;
-	if (m_layout != VK_NULL_HANDLE) {
-		vkDestroyDescriptorSetLayout(context->getDevice(), m_layout, nullptr);
-		m_layout = VK_NULL_HANDLE;
+void DescriptorSetLayout::initAttachment(VulkanContext* context) {
+	this->context = context;
+	
+	std::vector<VkDescriptorSetLayoutBinding> bindings;
+
+	for (uint32_t i = 0; i < 4; i++) {
+		VkDescriptorSetLayoutBinding binding{};
+		binding.binding = i;
+		binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		binding.descriptorCount = 1;
+		binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		binding.pImmutableSamplers = nullptr;
+		bindings.push_back(binding);
+	}
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo{};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+	layoutInfo.pBindings = bindings.data();
+
+	if (vkCreateDescriptorSetLayout(context->getDevice(), &layoutInfo, nullptr, &m_layout) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create attachment descriptor set layout!");
 	}
 }

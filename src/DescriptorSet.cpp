@@ -198,3 +198,57 @@ void DescriptorSet::initBindless(VulkanContext* context, DescriptorSetLayout* la
 
 	vkUpdateDescriptorSets(context->getDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
+
+
+std::unique_ptr<DescriptorSet> DescriptorSet::createAttachmentDescriptorSet(VulkanContext* context, DescriptorSetLayout* layout, GbufferAttachment& gbufferAttachment) {
+	std::unique_ptr<DescriptorSet> descriptorSet = std::unique_ptr<DescriptorSet>(new DescriptorSet());
+	descriptorSet->initAttachment(context, layout, gbufferAttachment);
+	return descriptorSet;
+}
+
+void DescriptorSet::initAttachment(VulkanContext* context, DescriptorSetLayout* layout, GbufferAttachment& gbufferAttachment) {
+	this->context = context;
+
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = context->getDescriptorPool();
+	allocInfo.descriptorSetCount = 1;
+	VkDescriptorSetLayout vkLayout = layout->getDescriptorSetLayout();
+	allocInfo.pSetLayouts = &vkLayout;
+
+	if (vkAllocateDescriptorSets(context->getDevice(), &allocInfo, &m_descriptorSet) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate attachment descriptor set!");
+	}
+
+	std::array<VkDescriptorImageInfo, 4> imageInfos{};
+
+	imageInfos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfos[0].imageView = gbufferAttachment.position->getImageView();
+	imageInfos[0].sampler = gbufferAttachment.position->getSampler();
+
+	imageInfos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfos[1].imageView = gbufferAttachment.normal->getImageView();
+	imageInfos[1].sampler = gbufferAttachment.normal->getSampler();
+
+	imageInfos[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfos[2].imageView = gbufferAttachment.albedo->getImageView();
+	imageInfos[2].sampler = gbufferAttachment.albedo->getSampler();
+
+	imageInfos[3].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfos[3].imageView = gbufferAttachment.pbr->getImageView();
+	imageInfos[3].sampler = gbufferAttachment.pbr->getSampler();
+
+	std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
+	for (uint32_t i = 0; i < 4; ++i) {
+		descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[i].dstSet = m_descriptorSet;
+		descriptorWrites[i].dstBinding = i;
+		descriptorWrites[i].dstArrayElement = 0;
+		descriptorWrites[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[i].descriptorCount = 1;
+		descriptorWrites[i].pImageInfo = &imageInfos[i];
+	}
+
+	vkUpdateDescriptorSets(context->getDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+	
+}

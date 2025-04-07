@@ -31,6 +31,8 @@
 #include <set>
 #include <unordered_map>
 #include <cmath>
+#include <string>
+#include <glm/gtc/type_ptr.hpp>
 
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -64,6 +66,10 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
+
+#define LIGHT_TYPE_DIRECTIONAL 0
+#define LIGHT_TYPE_POINT       1
+#define LIGHT_TYPE_SPOT        2
 
 
 const std::vector<const char*> validationLayers = {
@@ -140,16 +146,26 @@ struct alignas(16) CameraBuffer {
 	float pad = 0.0f;
 };
 
-struct alignas(16) DirectionalLight {
-	glm::vec4 direction;
-	glm::vec3 color;
+struct alignas(16) Light {
+	int type;                   // 0: directional, 1: point, 2: spot
+	int shadowMapIndex;         
+	int castsShadow;
 	float intensity;
+
+	glm::vec3 color;            
+	float range;
+
+	glm::vec3 position;
+	float spotInnerAngle;
+
+	glm::vec3 direction;
+	float spotOuterAngle;
 };
 
 struct alignas(16) LightBuffer {
-	DirectionalLight lights[MAX_LIGHT_COUNT];
+	Light lights[MAX_LIGHT_COUNT];
+	glm::vec3 ambientColor;
 	int lightCount;
-	glm::vec3 pad;
 };
 
 struct alignas(8) ObjectInstance {
@@ -174,6 +190,12 @@ struct alignas(16) Material {
 	int roughnessTexIndex = -1;
 	int aoTexIndex = -1;
 	int emissiveTexIndex = -1;
+};
+
+struct Camera {
+	glm::vec3 position = glm::vec3(0.0f, 0.0f, 5.0f);
+	glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);;
+	glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);;
 };
 
 void printMaterial(const Material& mat);

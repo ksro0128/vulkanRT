@@ -68,3 +68,28 @@ void FrameBuffer::initImGui(VulkanContext* context, RenderPass* renderPass, VkIm
 		throw std::runtime_error("failed to create ImGui framebuffer!");
 	}
 }
+
+
+std::unique_ptr<FrameBuffer> FrameBuffer::createOutputFrameBuffer(VulkanContext* context, RenderPass* renderPass, Texture* texture, VkExtent2D extent) {
+	std::unique_ptr<FrameBuffer> frameBuffer = std::unique_ptr<FrameBuffer>(new FrameBuffer());
+	frameBuffer->initOutput(context, renderPass, texture, extent);
+	return frameBuffer;
+}
+
+void FrameBuffer::initOutput(VulkanContext* context, RenderPass* renderPass, Texture* texture, VkExtent2D extent) {
+	this->context = context;
+
+	VkImageView attachments[] = { texture->getImageView() };
+
+	VkFramebufferCreateInfo framebufferInfo{};
+	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	framebufferInfo.renderPass = renderPass->getRenderPass();
+	framebufferInfo.attachmentCount = 1;
+	framebufferInfo.pAttachments = attachments;
+	framebufferInfo.width = extent.width;
+	framebufferInfo.height = extent.height;
+	framebufferInfo.layers = 1;
+	if (vkCreateFramebuffer(context->getDevice(), &framebufferInfo, nullptr, &m_frameBuffer) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create output framebuffer!");
+	}
+}
