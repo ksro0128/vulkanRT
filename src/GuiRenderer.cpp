@@ -177,6 +177,10 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 			 ImGui::DragFloat("Range", &lights[i].range, 0.1f, 0.0f, 10.0f);
 			 ImGui::DragFloat("Spot Inner", &lights[i].spotInnerAngle, 1.0f, 0.0f, 90.0f);
 			 ImGui::DragFloat("Spot Outer", &lights[i].spotOuterAngle, 1.0f, 0.0f, 90.0f);
+			 bool castsShadow = lights[i].castsShadow != 0;
+			 if (ImGui::Checkbox("Casts Shadow", &castsShadow)) {
+				 lights[i].castsShadow = castsShadow ? 1 : 0;
+			 }
 			 ImGui::TreePop();
 
 			 if (ImGui::Button("Remove Light")) {

@@ -147,12 +147,12 @@ struct alignas(16) CameraBuffer {
 };
 
 struct alignas(16) Light {
-	int type;                   // 0: directional, 1: point, 2: spot
-	int shadowMapIndex;         
-	int castsShadow;
+	int type = 0;                   // 0: directional, 1: point, 2: spot
+	int shadowMapIndex = -1;        // -1: no index
+	int castsShadow = 0;			// 0: false, 1: true
 	float intensity;
 
-	glm::vec3 color;            
+	glm::vec3 color;
 	float range;
 
 	glm::vec3 position;
@@ -196,6 +196,10 @@ struct Camera {
 	glm::vec3 position = glm::vec3(0.0f, 0.0f, 5.0f);
 	glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);;
 	glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);;
+};
+
+struct alignas(16) LightMatrix {
+	glm::mat4 mat;
 };
 
 void printMaterial(const Material& mat);

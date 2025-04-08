@@ -365,10 +365,10 @@ void VulkanContext::createDescriptorPool() {
 
 	// Set0 - Global
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = MAX_FRAMES_IN_FLIGHT * 10;
+	poolSizes[0].descriptorCount = MAX_FRAMES_IN_FLIGHT * 100;
 
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT * 10;
+	poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT * 100;
 
 	// Set1 - Object, Material
 	poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;

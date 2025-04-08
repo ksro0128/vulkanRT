@@ -252,3 +252,59 @@ void DescriptorSet::initAttachment(VulkanContext* context, DescriptorSetLayout* 
 	vkUpdateDescriptorSets(context->getDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 	
 }
+
+std::unique_ptr<DescriptorSet> DescriptorSet::createShadowDescriptorSet(VulkanContext* context, DescriptorSetLayout* layout,
+	UniformBuffer* lightMatrixBuffer, std::vector<Texture*>& shadowMapTextures) {
+	std::unique_ptr<DescriptorSet> descriptorSet = std::unique_ptr<DescriptorSet>(new DescriptorSet());
+	descriptorSet->initShadow(context, layout, lightMatrixBuffer, shadowMapTextures);
+	return descriptorSet;
+}
+
+void DescriptorSet::initShadow(VulkanContext* context, DescriptorSetLayout* layout,
+	UniformBuffer* lightMatrixBuffer, std::vector<Texture*>& shadowMapTextures) {
+	this->context = context;
+
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = context->getDescriptorPool();
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = &layout->getDescriptorSetLayout();
+
+	if (vkAllocateDescriptorSets(context->getDevice(), &allocInfo, &m_descriptorSet) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate shadow descriptor set!");
+	}
+
+	VkDescriptorBufferInfo bufferInfo{};
+	bufferInfo.buffer = lightMatrixBuffer->getBuffer();
+	bufferInfo.offset = 0;
+	bufferInfo.range = sizeof(LightMatrix) * 11;
+
+	VkWriteDescriptorSet uboWrite{};
+	uboWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	uboWrite.dstSet = m_descriptorSet;
+	uboWrite.dstBinding = 0;
+	uboWrite.dstArrayElement = 0;
+	uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uboWrite.descriptorCount = 1;
+	uboWrite.pBufferInfo = &bufferInfo;
+
+	std::vector<VkDescriptorImageInfo> imageInfos(shadowMapTextures.size());
+
+	for (size_t i = 0; i < shadowMapTextures.size(); ++i) {
+		imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfos[i].imageView = shadowMapTextures[i]->getImageView();
+		imageInfos[i].sampler = shadowMapTextures[i]->getSampler();
+	}
+
+	VkWriteDescriptorSet imageWrite{};
+	imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	imageWrite.dstSet = m_descriptorSet;
+	imageWrite.dstBinding = 1;
+	imageWrite.dstArrayElement = 0;
+	imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	imageWrite.descriptorCount = static_cast<uint32_t>(imageInfos.size());
+	imageWrite.pImageInfo = imageInfos.data();
+
+	std::array<VkWriteDescriptorSet, 2> writes = { uboWrite, imageWrite };
+	vkUpdateDescriptorSets(context->getDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+}

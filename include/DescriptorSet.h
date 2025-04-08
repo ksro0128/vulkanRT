@@ -35,6 +35,13 @@ public:
 		GbufferAttachment& gbufferAttachment
 	);
 
+	static std::unique_ptr<DescriptorSet> createShadowDescriptorSet(
+		VulkanContext* context,
+		DescriptorSetLayout* layout,
+		UniformBuffer* lightMatrixBuffer,
+		std::vector<Texture*>& shadowMapTextures
+	);
+
 	VkDescriptorSet& getDescriptorSet() { return m_descriptorSet; }
 
 	~DescriptorSet();
@@ -50,5 +57,6 @@ private:
 	void initBindless(VulkanContext* context, DescriptorSetLayout* layout, StorageBuffer* modelBuffer, StorageBuffer* materialBuffer,
 		const std::vector<std::unique_ptr<Texture>>& textureList);
 	void initAttachment(VulkanContext* context, DescriptorSetLayout* layout, GbufferAttachment& gbufferAttachment);
+	void initShadow(VulkanContext* context, DescriptorSetLayout* layout, UniformBuffer* lightMatrixBuffer, std::vector<Texture*>& shadowMapTextures);
 	void cleanup();
 };
