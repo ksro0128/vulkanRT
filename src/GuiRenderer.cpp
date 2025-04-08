@@ -174,7 +174,7 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 			 ImGui::DragFloat3("Direction", glm::value_ptr(lights[i].direction), 0.1f);
 			 ImGui::ColorEdit3("Color", glm::value_ptr(lights[i].color));
 			 ImGui::DragFloat("Intensity", &lights[i].intensity, 0.1f, 0.0f, 10.0f);
-			 ImGui::DragFloat("Range", &lights[i].range, 0.1f, 0.0f, 10.0f);
+			 ImGui::DragFloat("Range", &lights[i].range, 0.1f, 0.0f, 100.0f);
 			 ImGui::DragFloat("Spot Inner", &lights[i].spotInnerAngle, 1.0f, 0.0f, 90.0f);
 			 ImGui::DragFloat("Spot Outer", &lights[i].spotOuterAngle, 1.0f, 0.0f, 90.0f);
 			 bool castsShadow = lights[i].castsShadow != 0;
@@ -191,43 +191,6 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 		 }
 		 ImGui::PopID();
 	 }
-
-	//  auto& objects = scene->getObjects();
-	//  uint32_t maxModelIndex = scene->getMaxModelIndex();
-	//  uint32_t maxMaterialIndex = scene->getMaxMaterialIndex();
-
-	//  for (int i = 0; i < objects.size(); i++) {
-	// 	 ImGui::PushID(id++);
-	// 	 if (ImGui::TreeNode(("Object " + std::to_string(i)).c_str())) {
-	// 		 ImGui::DragFloat3("Position", glm::value_ptr(objects[i].position), 0.1f);
-	// 		 ImGui::DragFloat3("Rotation", glm::value_ptr(objects[i].rotation), 1.0f);
-	// 		 ImGui::DragFloat3("Scale", glm::value_ptr(objects[i].scale), 0.1f);
-	// 		 // Model Index Combo
-	// 		 std::vector<std::string> modelItems;
-	// 		 for (uint32_t j = 0; j < maxModelIndex; j++)
-	// 			 modelItems.push_back(std::to_string(j));
-	// 		 std::vector<const char*> modelCStrs;
-	// 		 for (auto& s : modelItems)
-	// 			 modelCStrs.push_back(s.c_str());
-
-	// 		 ImGui::Combo("Model Index", &objects[i].modelIndex, modelCStrs.data(), modelCStrs.size());
-
-	// 		 // Override Material Indices
-	// 		 for (int j = 0; j < objects[i].overrideMaterialIndex.size(); j++) {
-	// 			 std::string label = "Material[" + std::to_string(j) + "]";
-	// 			 int& matIndex = objects[i].overrideMaterialIndex[j];
-	// 			 matIndex = std::clamp(matIndex, 0, (int)maxMaterialIndex - 1);
-	// 			 ImGui::SliderInt(label.c_str(), &matIndex, 0, maxMaterialIndex - 1);
-	// 		 }
-	// 		 ImGui::TreePop();
-	// 		 if (ImGui::Button("Remove Object")) {
-	// 			 objects.erase(objects.begin() + i);
-	// 			 ImGui::PopID();
-	// 			 break;
-	// 		 }
-	// 	 }
-	// 	 ImGui::PopID();
-	//  }
 
 	auto& objects = scene->getObjects();
 	uint32_t maxModelIndex = scene->getMaxModelIndex();

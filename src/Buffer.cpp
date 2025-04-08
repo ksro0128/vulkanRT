@@ -476,6 +476,24 @@ void ImageBuffer::initAttachment(VulkanContext* context, uint32_t width,
 		m_image, m_textureImageMemory);
 }
 
+std::unique_ptr<ImageBuffer> ImageBuffer::createCubeMapImageBuffer(VulkanContext* context, uint32_t width,
+	uint32_t height, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags) {
+	std::unique_ptr<ImageBuffer> imageBuffer = std::unique_ptr<ImageBuffer>(new ImageBuffer());
+	imageBuffer->initCubeMap(context, width, height, format, usage, aspectFlags);
+	return imageBuffer;
+}
+
+void ImageBuffer::initCubeMap(VulkanContext* context, uint32_t width,
+	uint32_t height, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags) {
+	this->context = context;
+	m_mipLevels = 1;
+
+	VulkanUtil::createImage(context, width, height, m_mipLevels, VK_SAMPLE_COUNT_1_BIT,
+		format, VK_IMAGE_TILING_OPTIMAL,
+		usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		m_image, m_textureImageMemory, true);
+}
+
 
 std::unique_ptr<UniformBuffer> UniformBuffer::createUniformBuffer(VulkanContext* context, VkDeviceSize buffersize) {
 	std::unique_ptr<UniformBuffer> uniformBuffer = std::unique_ptr<UniformBuffer>(new UniformBuffer());

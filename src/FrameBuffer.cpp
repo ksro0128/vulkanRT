@@ -117,3 +117,27 @@ void FrameBuffer::initShadowMap(VulkanContext* context, RenderPass* renderPass, 
 		throw std::runtime_error("failed to create output framebuffer!");
 	}
 }
+
+std::unique_ptr<FrameBuffer> FrameBuffer::createShadowCubeMapFrameBuffer(VulkanContext* context, RenderPass* renderPass, Texture* texture, VkExtent2D extent, uint32_t faceIndex) {
+	std::unique_ptr<FrameBuffer> frameBuffer = std::unique_ptr<FrameBuffer>(new FrameBuffer());
+	frameBuffer->initShadowCubeMap(context, renderPass, texture, extent, faceIndex);
+	return frameBuffer;
+}
+
+void FrameBuffer::initShadowCubeMap(VulkanContext* context, RenderPass* renderPass, Texture* texture, VkExtent2D extent, uint32_t faceIndex) {
+	this->context = context;
+
+	VkImageView attachments[] = { texture->getCubeMapImageViews()[faceIndex] };
+
+	VkFramebufferCreateInfo framebufferInfo{};
+	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	framebufferInfo.renderPass = renderPass->getRenderPass();
+	framebufferInfo.attachmentCount = 1;
+	framebufferInfo.pAttachments = attachments;
+	framebufferInfo.width = extent.width;
+	framebufferInfo.height = extent.height;
+	framebufferInfo.layers = 1;
+	if (vkCreateFramebuffer(context->getDevice(), &framebufferInfo, nullptr, &m_frameBuffer) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create shadow cube map framebuffer!");
+	}
+}

@@ -87,6 +87,11 @@ void Renderer::init(GLFWwindow* window) {
 		}
 	}
 
+	m_shadowCubeMapTextures.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		m_shadowCubeMapTextures[i] = Texture::createCubeMapTexture(m_context.get(), 2048, 2048, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+	}
+
 	// framebuffer
 	m_gbufferFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 	m_outputFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
@@ -105,6 +110,14 @@ void Renderer::init(GLFWwindow* window) {
 		m_shadowMapFrameBuffers[i].resize(7);
 		for (int j = 0; j < 7; j++) {
 			m_shadowMapFrameBuffers[i][j] = FrameBuffer::createShadowMapFrameBuffer(m_context.get(), m_shadowMapRenderPass.get(), m_shadowMapTextures[i][j].get(), {2048, 2048});
+		}
+	}
+
+	m_shadowCubeMapFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		m_shadowCubeMapFrameBuffers[i].resize(6);
+		for (int j = 0; j < 6; j++) {
+			m_shadowCubeMapFrameBuffers[i][j] = FrameBuffer::createShadowCubeMapFrameBuffer(m_context.get(), m_shadowMapRenderPass.get(), m_shadowCubeMapTextures[i].get(), {2048, 2048}, j);
 		}
 	}
 
@@ -645,8 +658,9 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 	
 	int32_t directionalCount = 0;
 	int32_t spotCount = 0;
+	int32_t pointCount = 0;
 
-	std::array<LightMatrix, 11> lightMatrices;
+	std::array<LightMatrix, 12> lightMatrices;
 	memset(&lightMatrices, 0, sizeof(lightMatrices));
 	for (int i = 0; i < lights.size(); ++i) {
 		Light& light = lights[i];
@@ -658,8 +672,8 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 		int type = light.type;
 		int shadowMapIndex = 0;
 
-		// Point light´Â ³ªÁß¿¡ Ã³¸®ÇÏÀÚ
-		if (type == LIGHT_TYPE_POINT) // point
+		// Point lightï¿½ï¿½ ï¿½ï¿½ï¿½ß¿ï¿½ Ã³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		if (type == LIGHT_TYPE_POINT && pointCount > 0) // point light 1ê°œë§Œ ì²˜ë¦¬
 			continue;
 
 		if (type == LIGHT_TYPE_DIRECTIONAL && directionalCount > 0)
@@ -677,15 +691,14 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 			spotCount++;
 		}
 
+		if (type == LIGHT_TYPE_POINT) {
+			pointCount++;
+			shadowMapIndex = 7;
+		}
 
-		// view-proj Çà·Ä °è»ê
 		glm::mat4 lightViewProj = computeLightMatrix(light);
-
-
 		VkClearValue clearValue{};
 		clearValue.depthStencil = { 1.0f, 0 };
-
-
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = m_shadowMapRenderPass->getRenderPass();
@@ -696,15 +709,9 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 		renderPassInfo.pClearValues = &clearValue;
 
 		vkCmdBeginRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-
 		vkCmdBindPipeline(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipeline());
-
-
 		vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipelineLayout(), 0, 1, &m_objectMaterialDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
 		vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipelineLayout(), 1, 1, &m_bindlessDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
-
-
 		// Push Constant
 		vkCmdPushConstants(
 			m_commandBuffers->getCommandBuffers()[currentFrame],
@@ -713,8 +720,6 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 			0, sizeof(glm::mat4),
 			&lightViewProj
 		);
-
-
 		int32_t index = 0;
 		for (const auto& [key, value] : objectMap) {
 			for (int32_t i = 0; i < m_modelList[key].mesh.size(); i++) {
@@ -839,14 +844,10 @@ glm::mat4 Renderer::computeLightMatrix(Light& light) {
 	glm::mat4 lightView;
 	glm::mat4 lightProj;
 
-	//light.direction = glm::normalize(light.direction);
 	glm::vec3 lightDir = glm::normalize(light.direction);
 	glm::vec3 up = (glm::abs(lightDir.y) > 0.99f) ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(0.0f, 1.0f, 0.0f);
 
 	if (light.type == LIGHT_TYPE_DIRECTIONAL) {
-		/*glm::vec3 eye = m_camera.position - light.direction * 10.0f;
-		glm::vec3 center = m_camera.position;*/
-
 		glm::vec3 eye = glm::vec3(0.0f) - glm::normalize(lightDir) * 10.0f;
 		glm::vec3 center = glm::vec3(0.0f);
 
@@ -859,7 +860,7 @@ glm::mat4 Renderer::computeLightMatrix(Light& light) {
 		glm::vec3 target = light.position + glm::normalize(lightDir);
 
 		lightView = glm::lookAt(eye, target, up);
-		lightProj = glm::perspective(glm::radians(light.spotOuterAngle * 2.0f), 1.0f, 0.1f, light.range);
+		lightProj = glm::perspective(glm::radians(light.spotOuterAngle * 2.0f), 1.0f, 0.1f, 100.0f);
 		lightProj[1][1] *= -1.0f;
 	}
 

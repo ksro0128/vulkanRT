@@ -66,12 +66,14 @@ private:
 	std::vector<GbufferAttachment> m_gbufferAttachments;
 	std::vector<std::unique_ptr<Texture>> m_outputTextures;
 	std::vector<std::vector<std::unique_ptr<Texture>>> m_shadowMapTextures;
+	std::vector<std::unique_ptr<Texture>> m_shadowCubeMapTextures;
 
 	// framebuffer
 	std::vector<std::unique_ptr<FrameBuffer>> m_gbufferFrameBuffers;
 	std::vector<std::unique_ptr<FrameBuffer>> m_imguiFrameBuffers;
 	std::vector<std::unique_ptr<FrameBuffer>> m_outputFrameBuffers;
 	std::vector<std::vector<std::unique_ptr<FrameBuffer>>> m_shadowMapFrameBuffers;
+	std::vector<std::vector<std::unique_ptr<FrameBuffer>>> m_shadowCubeMapFrameBuffers;
 
 	// descriptorset
 	std::array<std::unique_ptr<DescriptorSet>, MAX_FRAMES_IN_FLIGHT> m_globlaDescSets;

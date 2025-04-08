@@ -22,7 +22,7 @@ void Scene::init(uint32_t maxModelIndex, uint32_t maxMaterialIndex, uint32_t max
 		light.direction = glm::vec4(-0.5f, -1.0f, -1.0f, 0.0f);
 		light.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		light.intensity = 3.0f;
-		light.range = 10.0f;
+		light.range = 100.0f;
 		light.position = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 		light.spotInnerAngle = 30.0f;
 		light.spotOuterAngle = 45.0f;

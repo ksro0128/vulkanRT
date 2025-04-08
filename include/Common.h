@@ -38,10 +38,10 @@
 const int MAX_FRAMES_IN_FLIGHT = 2;
 constexpr uint32_t MAX_LIGHT_COUNT = 64;
 
-constexpr uint32_t MAX_OBJECT_COUNT = 10000;
-constexpr uint32_t MAX_MESH_COUNT = 10000;
-constexpr uint32_t MAX_MATERIAL_COUNT = 1024;
-constexpr uint32_t MAX_TEXTURE_COUNT = 1024;
+constexpr uint32_t MAX_OBJECT_COUNT = 1000;
+constexpr uint32_t MAX_MESH_COUNT = 3000;
+constexpr uint32_t MAX_MATERIAL_COUNT = 512;
+constexpr uint32_t MAX_TEXTURE_COUNT = 512;
 
 
 struct SwapChainSupportDetails {
@@ -153,7 +153,7 @@ struct alignas(16) Light {
 	float intensity;
 
 	glm::vec3 color;
-	float range;
+	float range = 100.0f;
 
 	glm::vec3 position;
 	float spotInnerAngle;

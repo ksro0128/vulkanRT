@@ -44,6 +44,12 @@ void Texture::cleanup() {
 		vkDestroyImageView(context->getDevice(), m_imageView, nullptr);
 		m_imageView = VK_NULL_HANDLE;
 	}
+	if (m_cubeMapImageViews.size() > 0) {
+		for (auto& view : m_cubeMapImageViews) {
+			vkDestroyImageView(context->getDevice(), view, nullptr);
+		}
+		m_cubeMapImageViews.clear();
+	}
 }
 
 VkSamplerCreateInfo Texture::createDefaultSamplerInfo() {
@@ -129,3 +135,54 @@ void Texture::initAttachmentTexture(VulkanContext* context, uint32_t width,
 	}
 	m_format = format;
 }
+
+std::unique_ptr<Texture> Texture::createCubeMapTexture(VulkanContext* context, uint32_t width,
+	uint32_t height, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags) {
+	std::unique_ptr<Texture> texture = std::unique_ptr<Texture>(new Texture());
+	texture->initCubeMapTexture(context, width, height, format, usage, aspectFlags);
+	return texture;
+}
+
+void Texture::initCubeMapTexture(VulkanContext* context, uint32_t width,
+	uint32_t height, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags) {
+	this->context = context;
+
+	m_imageBuffer = ImageBuffer::createCubeMapImageBuffer(context, width, height, format, usage, aspectFlags);
+
+	m_imageView = VulkanUtil::createImageView(
+		context,
+		m_imageBuffer->getImage(),
+		format,
+		aspectFlags,
+		m_imageBuffer->getMipLevels(),
+		true
+	);
+
+	m_cubeMapImageViews.resize(6);
+	for (uint32_t face = 0; face < 6; ++face) {
+		VkImageViewCreateInfo viewInfo{};
+		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewInfo.image = m_imageBuffer->getImage();
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.format = format;
+		viewInfo.subresourceRange.aspectMask = aspectFlags;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = face;
+		viewInfo.subresourceRange.layerCount = 1;
+
+		if (vkCreateImageView(context->getDevice(), &viewInfo, nullptr, &m_cubeMapImageViews[face]) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create cubemap face image view!");
+		}
+	}
+
+	VkSamplerCreateInfo samplerInfo = createDefaultSamplerInfo();
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+	if (vkCreateSampler(context->getDevice(), &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create cube map image sampler!");
+	}
+}
+

@@ -37,10 +37,10 @@ layout(set = 1, binding = 2) uniform sampler2D gAlbedo;
 layout(set = 1, binding = 3) uniform sampler2D gPBR;
 
 layout(set = 2, binding = 0) uniform LightMatrixBuffer {
-    mat4 lightMatrices[11];
+    mat4 lightMatrices[12];
 };
 
-layout(set = 2, binding = 1) uniform sampler2DShadow shadowMaps[7];
+layout(set = 2, binding = 1) uniform sampler2D shadowMaps[7];
 
 
 // Fresnel-Schlick Approximation
@@ -70,18 +70,23 @@ float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
     return geometrySchlickGGX(NdotV, roughness) * geometrySchlickGGX(NdotL, roughness);
 }
 
-float PCFShadow(sampler2DShadow shadowMap, vec3 shadowCoord) {
+float PCFShadow(sampler2D shadowMap, vec3 shadowCoord) {
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
 
     for (int x = -1; x <= 1; ++x) {
         for (int y = -1; y <= 1; ++y) {
             vec2 offset = vec2(x, y) * texelSize;
-            shadow += texture(shadowMap, vec3(shadowCoord.xy + offset, shadowCoord.z - 0.005));
+            float closestDepth = texture(shadowMap, shadowCoord.xy + offset).r;
+            float currentDepth = shadowCoord.z - 0.005;
+
+            float shadowFactor = currentDepth > closestDepth ? 0.0 : 1.0;
+            shadow += shadowFactor;
         }
     }
     return shadow / 9.0;
 }
+
 
 void main() {
     vec3 fragPos = texture(gPosition, fragTexCoord).xyz;
@@ -118,8 +123,7 @@ void main() {
                 float shadowFactor = PCFShadow(shadowMaps[light.shadowMapIndex], shadowCoord);
                 
                 // debug
-                float cloestDepth = texture(shadowMaps[light.shadowMapIndex], shadowCoord).r;
-
+                // float cloestDepth = texture(shadowMaps[light.shadowMapIndex], shadowCoord.xy).r;
                 // float shadowFactor = shadowCoord.z - 0.001 > cloestDepth ? 0.0 : 1.0;
                 
                 
@@ -144,16 +148,27 @@ void main() {
             float linear = 0.09;
             float quadratic = 0.032;
             attenuation = 1.0 / (constant + linear * distance + quadratic * (distance * distance));
-            float rangeFactor = clamp(1.0 - distance / light.range, 0.0, 1.0);
-            attenuation *= rangeFactor;
-
 
             float theta = dot(L, normalize(-light.direction));
             float cosInner = cos(radians(light.spotInnerAngle));
             float cosOuter = cos(radians(light.spotOuterAngle));
+
             float epsilon = max(cosInner - cosOuter, 0.001);
+
             float intensity = clamp((theta - cosOuter) / epsilon, 0.0, 1.0);
             attenuation *= intensity;
+
+            if (light.castsShadow == 1 && light.shadowMapIndex != -1) {
+                mat4 lightViewProj = lightMatrices[light.shadowMapIndex];
+                vec4 lightSpacePos = lightViewProj * vec4(fragPos, 1.0);
+                vec3 shadowCoord = lightSpacePos.xyz / lightSpacePos.w;
+                shadowCoord.xy = shadowCoord.xy * 0.5 + 0.5;
+                float shadowFactor = PCFShadow(shadowMaps[light.shadowMapIndex], shadowCoord);
+                // debug
+                // float cloestDepth = texture(shadowMaps[light.shadowMapIndex], shadowCoord.xy).r;
+                // float shadowFactor = shadowCoord.z - 0.001 > cloestDepth ? 0.0 : 1.0;
+                attenuation *= shadowFactor;
+            }
         }
 
         vec3 H = normalize(V + L);
