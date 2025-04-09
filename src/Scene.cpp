@@ -33,76 +33,9 @@ void Scene::init(uint32_t maxModelIndex, uint32_t maxMaterialIndex, uint32_t max
 	{
 		Object obj;
 		obj.modelIndex = 0;
-		obj.position = glm::vec3(-1.1f, 1.1f, 0.0f);
-		obj.overrideMaterialIndex.push_back(0);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 0;
-		obj.position = glm::vec3(0.0f, 1.1f, 0.0f);
-		obj.overrideMaterialIndex.push_back(1);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 0;
-		obj.position = glm::vec3(1.1f, 1.1f, 0.0f);
-		obj.overrideMaterialIndex.push_back(2);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 0;
-		obj.position = glm::vec3(-1.1f, 0.0f, 0.0f);
-		obj.overrideMaterialIndex.push_back(3);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 11;
 		obj.position = glm::vec3(0.0f, 0.0f, 0.0f);
 		m_objects.push_back(obj);
 	}
-	{
-		Object obj;
-		obj.modelIndex = 2;
-		obj.position = glm::vec3(1.1f, 0.0f, 0.0f);
-
-		obj.overrideMaterialIndex.push_back(5);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 1;
-		obj.position = glm::vec3(-1.1f, -1.1f, 0.0f);
-
-		obj.overrideMaterialIndex.push_back(6);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 2;
-		obj.position = glm::vec3(0.0f, -1.1f, 0.0f);
-
-		obj.overrideMaterialIndex.push_back(7);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 1;
-		obj.position = glm::vec3(1.1f, -1.1f, 0.0f);
-
-		obj.overrideMaterialIndex.push_back(8);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 0;
-		obj.position = glm::vec3(0.0f, -2.0f, 0.0f);
-		obj.rotation = glm::vec3(-90.0f, 0.0f, 0.0f);
-		obj.scale = glm::vec3(10.0f);
-		m_objects.push_back(obj);
-	}
+	
 
 }

@@ -28,17 +28,20 @@ void Renderer::init(GLFWwindow* window) {
 
 	createDefaultModels();
 
-	loadModel("./assets/materials/aerial_grass_rock_1k.gltf/aerial_grass_rock_1k.gltf");
-	loadModel("./assets/materials/aerial_rocks_02_1k.gltf/aerial_rocks_02_1k.gltf");
-	loadModel("./assets/materials/asphalt_02_1k.gltf/asphalt_02_1k.gltf");
-	loadModel("./assets/materials/beige_wall_001_1k.gltf/beige_wall_001_1k.gltf");
-	loadModel("./assets/materials/brick_wall_13_4k.gltf/brick_wall_13_4k.gltf");
-	loadModel("./assets/materials/brown_mud_leaves_01_1k.gltf/brown_mud_leaves_01_1k.gltf");
-	loadModel("./assets/materials/plywood_1k.gltf/plywood_1k.gltf");
-	loadModel("./assets/materials/fabric_pattern_07_1k.gltf/fabric_pattern_07_1k.gltf");
-	loadModel("./assets/models/lion_head_1k.gltf/lion_head_1k.gltf");
-	loadModel("./assets/models/Camera_01_1k.gltf/Camera_01_1k.gltf");
+	//loadModel("./assets/materials/aerial_grass_rock_1k.gltf/aerial_grass_rock_1k.gltf");
+	//loadModel("./assets/materials/aerial_rocks_02_1k.gltf/aerial_rocks_02_1k.gltf");
+	//loadModel("./assets/materials/asphalt_02_1k.gltf/asphalt_02_1k.gltf");
+	//loadModel("./assets/materials/beige_wall_001_1k.gltf/beige_wall_001_1k.gltf");
+	//loadModel("./assets/materials/brick_wall_13_4k.gltf/brick_wall_13_4k.gltf");
+	//loadModel("./assets/materials/brown_mud_leaves_01_1k.gltf/brown_mud_leaves_01_1k.gltf");
+	//loadModel("./assets/materials/plywood_1k.gltf/plywood_1k.gltf");
+	//loadModel("./assets/materials/fabric_pattern_07_1k.gltf/fabric_pattern_07_1k.gltf");
+	//loadModel("./assets/models/lion_head_1k.gltf/lion_head_1k.gltf");
+	//loadModel("./assets/models/Camera_01_1k.gltf/Camera_01_1k.gltf");
 
+	//loadModel("./main1_sponza/NewSponza_Main_glTF_003.gltf");
+	//loadModel("./pkg_a_curtains/NewSponza_Curtains_glTF.gltf");
+	loadModel("nodecal.glb");
 
 	// descriptorset layout
 	m_globalLayout = DescriptorSetLayout::createGlobalDescriptorSetLayout(m_context.get());
@@ -472,7 +475,7 @@ void Renderer::createDefaultModels()
 }
 
 void Renderer::loadModel(const std::string& modelPath) {
-	Model model = ModelLoader::loadGLTFModel(modelPath, m_context.get(), m_meshList, m_textureList, m_materialList);
+	Model model = ModelLoader::loadGLTFModel(modelPath, m_context.get(), m_meshList, m_textureList, m_materialList, m_texturePathMap);
 	m_modelList.push_back(model);
 }
 
@@ -903,11 +906,11 @@ glm::mat4 Renderer::computeLightMatrix(Light& light) {
 	glm::vec3 up = (glm::abs(lightDir.y) > 0.99f) ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(0.0f, 1.0f, 0.0f);
 
 	if (light.type == LIGHT_TYPE_DIRECTIONAL) {
-		glm::vec3 eye = glm::vec3(0.0f) - glm::normalize(lightDir) * 10.0f;
+		glm::vec3 eye = glm::vec3(0.0f) - glm::normalize(lightDir) * 120.0f;
 		glm::vec3 center = glm::vec3(0.0f);
 
 		lightView = glm::lookAt(eye, center, up);
-		lightProj = glm::ortho(-10.f, 10.f, -10.f, 10.f, -10.0f, 20.f);
+		lightProj = glm::ortho(-80.f, 80.f, -80.f, 80.f, -50.0f, 250.f);
 		lightProj[1][1] *= -1.0f;
 	}
 	else if (light.type == LIGHT_TYPE_SPOT) {

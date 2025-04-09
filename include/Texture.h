@@ -2,6 +2,9 @@
 
 #include "Common.h"
 #include "Buffer.h"
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 enum class TextureFormatType {
 	ColorSRGB,     // Albedo, Emissive
@@ -16,6 +19,7 @@ public:
 		uint32_t height, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags);
 	static std::unique_ptr<Texture> createCubeMapTexture(VulkanContext* context, uint32_t width,
 		uint32_t height, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags);
+	static std::unique_ptr<Texture> createTextureFromMemory(VulkanContext* context, const aiTexture* aiTexture, TextureFormatType formatType);
 
 	~Texture();
 
@@ -39,6 +43,7 @@ private:
 		uint32_t height, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags);
 	void initCubeMapTexture(VulkanContext* context, uint32_t width,
 		uint32_t height, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags);
+	void initTextureFromMemory(VulkanContext* context, const aiTexture* aiTexture, TextureFormatType formatType);
 	void cleanup();
 
 	VkSamplerCreateInfo createDefaultSamplerInfo();

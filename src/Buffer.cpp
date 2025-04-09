@@ -137,7 +137,9 @@ bool ImageBuffer::init(VulkanContext* context, std::string path, VkFormat format
 	this->context = context;
 
 	int texWidth, texHeight, texChannels;
+	std::cout << "load: " << path << std::endl;
 	stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+	std::cout << "done" << std::endl;
 	VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 	if (!pixels) {
@@ -493,6 +495,72 @@ void ImageBuffer::initCubeMap(VulkanContext* context, uint32_t width,
 		usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		m_image, m_textureImageMemory, true);
 }
+
+std::unique_ptr<ImageBuffer> ImageBuffer::createImageBufferFromMemory(VulkanContext* context, const aiTexture* aiTexture, VkFormat format) {
+	std::unique_ptr<ImageBuffer> imageBuffer = std::unique_ptr<ImageBuffer>(new ImageBuffer());
+	if (!(imageBuffer->initFromMemory(context, aiTexture, format)))
+		return nullptr;
+	return imageBuffer;
+}
+
+bool ImageBuffer::initFromMemory(VulkanContext* context, const aiTexture* texture, VkFormat format) {
+	this->context = context;
+
+	int texWidth, texHeight, texChannels;
+	unsigned char* pixels = nullptr;
+
+	if (texture->mHeight == 0)
+	{
+		// Compressed texture (e.g., JPEG/PNG)
+		pixels =
+			stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(texture->pcData), static_cast<int>(texture->mWidth),
+				&texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+
+		if (!pixels)
+		{
+			throw std::runtime_error("Failed to decode compressed texture!");
+		}
+	}
+	else
+	{
+		// Uncompressed RAW texture
+		texWidth = texture->mWidth;
+		texHeight = texture->mHeight;
+		texChannels = 4; // Assume RGBA for uncompressed textures
+		pixels = reinterpret_cast<unsigned char*>(texture->pcData);
+	}
+
+	m_mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+
+	VkDeviceSize imageSize = texWidth * texHeight * 4; // RGBA: 4 bytes per pixel
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+	createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer,
+		stagingBufferMemory);
+
+	void* data;
+	vkMapMemory(context->getDevice(), stagingBufferMemory, 0, imageSize, 0, &data);
+	memcpy(data, pixels, static_cast<size_t>(imageSize));
+	vkUnmapMemory(context->getDevice(), stagingBufferMemory);
+
+	stbi_image_free(pixels);
+
+	VulkanUtil::createImage(context,
+		texWidth, texHeight, m_mipLevels, VK_SAMPLE_COUNT_1_BIT, format, VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_textureImageMemory);
+
+	transitionImageLayout(m_image, format, VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_mipLevels);
+	copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+
+	vkDestroyBuffer(context->getDevice(), stagingBuffer, nullptr);
+	vkFreeMemory(context->getDevice(), stagingBufferMemory, nullptr);
+
+	generateMipmaps(m_image, format, texWidth, texHeight, m_mipLevels);
+}
+
 
 
 std::unique_ptr<UniformBuffer> UniformBuffer::createUniformBuffer(VulkanContext* context, VkDeviceSize buffersize) {

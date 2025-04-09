@@ -18,7 +18,8 @@ public:
 		VulkanContext* context,
 		std::vector<std::unique_ptr<Mesh>>& meshList,
 		std::vector<std::unique_ptr<Texture>>& textureList,
-		std::vector<Material>& materialList
+		std::vector<Material>& materialList,
+		std::unordered_map<std::string, int32_t>& texturePathMap
 	);
 private:
 	static void processNode(
@@ -27,6 +28,7 @@ private:
 		std::vector<std::unique_ptr<Mesh>>& meshList,
 		std::vector<std::unique_ptr<Texture>>& textureList,
 		std::vector<Material>& materialList,
+		std::unordered_map<std::string, int32_t>& texturePathMap,
 		Model& model, const std::filesystem::path& basePath
 	);
 
@@ -38,13 +40,17 @@ private:
 	static Material processMaterial(
 		aiMaterial* material, const aiScene* scene,
 		VulkanContext* context,
-		std::vector<std::unique_ptr<Texture>>& textureList, const std::filesystem::path& basePath
+		std::vector<std::unique_ptr<Texture>>& textureList, 
+		std::unordered_map<std::string, int32_t>& texturePathMap,
+		const std::filesystem::path& basePath
 	);
 
 	static int32_t loadTexture(
-		aiMaterial* material, aiTextureType type,
+		const aiScene* scene, aiMaterial* material, aiTextureType type,
 		VulkanContext* context,
-		std::vector<std::unique_ptr<Texture>>& textureList, const std::filesystem::path& basePath, TextureFormatType formatType
+		std::vector<std::unique_ptr<Texture>>& textureList, 
+		std::unordered_map<std::string, int32_t>& texturePathMap,
+		const std::filesystem::path& basePath, TextureFormatType formatType
 	);
 
 };

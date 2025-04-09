@@ -40,6 +40,7 @@ private:
 	std::vector<std::unique_ptr<Texture>> m_textureList;
 	std::vector<Material> m_materialList;
 	std::vector<Model> m_modelList;
+	std::unordered_map<std::string, int32_t> m_texturePathMap;
 
 	// descriptorset layout
 	std::unique_ptr<DescriptorSetLayout> m_globalLayout;

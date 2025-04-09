@@ -3,7 +3,7 @@
 Model ModelLoader::loadGLTFModel(const std::string& path, VulkanContext* context,
 	std::vector<std::unique_ptr<Mesh>>& meshList,
 	std::vector<std::unique_ptr<Texture>>& textureList,
-	std::vector<Material>& materialList)
+	std::vector<Material>& materialList, std::unordered_map<std::string, int32_t>& texturePathMap)
 {
 	Assimp::Importer importer;
 
@@ -23,7 +23,7 @@ Model ModelLoader::loadGLTFModel(const std::string& path, VulkanContext* context
 	std::filesystem::path basePath = std::filesystem::path(path).parent_path();
 
 	Model model;
-	processNode(scene->mRootNode, scene, context, meshList, textureList, materialList, model, basePath);
+	processNode(scene->mRootNode, scene, context, meshList, textureList, materialList, texturePathMap, model, basePath);
 
 	return model;
 }
@@ -32,6 +32,7 @@ void ModelLoader::processNode(aiNode* node, const aiScene* scene, VulkanContext*
 	std::vector<std::unique_ptr<Mesh>>& meshList,
 	std::vector<std::unique_ptr<Texture>>& textureList,
 	std::vector<Material>& materialList,
+	std::unordered_map<std::string, int32_t>& texturePathMap,
 	Model& model,
 	const std::filesystem::path& basePath)
 {
@@ -47,7 +48,7 @@ void ModelLoader::processNode(aiNode* node, const aiScene* scene, VulkanContext*
 		if (mesh->mMaterialIndex >= 0)
 		{
 			aiMaterial* aiMat = scene->mMaterials[mesh->mMaterialIndex];
-			Material mat = processMaterial(aiMat, scene, context, textureList, basePath); // basePath 전달
+			Material mat = processMaterial(aiMat, scene, context, textureList, texturePathMap, basePath); // basePath 전달
 			int32_t materialIndex = static_cast<int32_t>(materialList.size());
 			materialList.push_back(mat);
 			model.material.push_back(materialIndex);
@@ -60,7 +61,7 @@ void ModelLoader::processNode(aiNode* node, const aiScene* scene, VulkanContext*
 
 	for (unsigned int i = 0; i < node->mNumChildren; ++i)
 	{
-		processNode(node->mChildren[i], scene, context, meshList, textureList, materialList, model, basePath);
+		processNode(node->mChildren[i], scene, context, meshList, textureList, materialList, texturePathMap, model, basePath);
 	}
 }
 
@@ -105,16 +106,17 @@ std::unique_ptr<Mesh> ModelLoader::processMesh(aiMesh* mesh, const aiScene* scen
 Material ModelLoader::processMaterial(aiMaterial* aiMat, const aiScene* scene,
 	VulkanContext* context,
 	std::vector<std::unique_ptr<Texture>>& textureList,
+	std::unordered_map<std::string, int32_t>& texturePathMap,
 	const std::filesystem::path& basePath)
 {
 	Material mat{};
 
-	mat.albedoTexIndex = loadTexture(aiMat, aiTextureType_BASE_COLOR, context, textureList, basePath, TextureFormatType::ColorSRGB);
-	mat.normalTexIndex = loadTexture(aiMat, aiTextureType_NORMALS, context, textureList, basePath, TextureFormatType::LinearUNORM);
-	mat.metallicTexIndex = loadTexture(aiMat, aiTextureType_METALNESS, context, textureList, basePath, TextureFormatType::LinearUNORM);
-	mat.roughnessTexIndex = loadTexture(aiMat, aiTextureType_DIFFUSE_ROUGHNESS, context, textureList, basePath, TextureFormatType::LinearUNORM);
-	mat.aoTexIndex = loadTexture(aiMat, aiTextureType_AMBIENT_OCCLUSION, context, textureList, basePath, TextureFormatType::LinearUNORM);
-	mat.emissiveTexIndex = loadTexture(aiMat, aiTextureType_EMISSIVE, context, textureList, basePath, TextureFormatType::ColorSRGB);
+	mat.albedoTexIndex = loadTexture(scene, aiMat, aiTextureType_BASE_COLOR, context, textureList, texturePathMap, basePath, TextureFormatType::ColorSRGB);
+	mat.normalTexIndex = loadTexture(scene, aiMat, aiTextureType_NORMALS, context, textureList, texturePathMap, basePath, TextureFormatType::LinearUNORM);
+	mat.metallicTexIndex = loadTexture(scene, aiMat, aiTextureType_METALNESS, context, textureList, texturePathMap, basePath, TextureFormatType::LinearUNORM);
+	mat.roughnessTexIndex = loadTexture(scene, aiMat, aiTextureType_DIFFUSE_ROUGHNESS, context, textureList, texturePathMap, basePath, TextureFormatType::LinearUNORM);
+	mat.aoTexIndex = loadTexture(scene, aiMat, aiTextureType_AMBIENT_OCCLUSION, context, textureList, texturePathMap, basePath, TextureFormatType::LinearUNORM);
+	mat.emissiveTexIndex = loadTexture(scene, aiMat, aiTextureType_EMISSIVE, context, textureList, texturePathMap, basePath, TextureFormatType::ColorSRGB);
 
 	float metallic = 0.0f, roughness = 0.5f;
 	aiMat->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
@@ -131,9 +133,10 @@ Material ModelLoader::processMaterial(aiMaterial* aiMat, const aiScene* scene,
 }
 
 
-int32_t ModelLoader::loadTexture(aiMaterial* aiMat, aiTextureType type,
+int32_t ModelLoader::loadTexture(const aiScene* scene, aiMaterial* aiMat, aiTextureType type,
 	VulkanContext* context,
 	std::vector<std::unique_ptr<Texture>>& textureList,
+	std::unordered_map<std::string, int32_t>& texturePathMap,
 	const std::filesystem::path& basePath, TextureFormatType formatType)
 {
 	if (aiMat->GetTextureCount(type) > 0)
@@ -141,11 +144,34 @@ int32_t ModelLoader::loadTexture(aiMaterial* aiMat, aiTextureType type,
 		aiString texPath;
 		if (aiMat->GetTexture(type, 0, &texPath) == AI_SUCCESS)
 		{
+			std::string texPathStr = texPath.C_Str();
+			
 			std::filesystem::path fullPath = basePath / texPath.C_Str();
+			std::string pathStr = fullPath.string();
+			
+			auto it = texturePathMap.find(pathStr);
+			if (it != texturePathMap.end()) {
+				return it->second;
+			}
 
-			auto texture = Texture::createTexture(context, fullPath.string(), formatType);
+			std::unique_ptr<Texture> texture = nullptr;
+			if (texPathStr[0] == '*') {
+				int index = std::stoi(texPathStr.substr(1));
+
+				const aiTexture* embeddedTex = scene->mTextures[index];
+				if (!embeddedTex) {
+					std::cerr << "Failed to get embedded texture: " << texPathStr << std::endl;
+					return -1;
+				}
+				std::cout << "glb texture" << pathStr << std::endl;
+				texture = Texture::createTextureFromMemory(context, embeddedTex, formatType);
+			}
+			else {
+				texture = Texture::createTexture(context, fullPath.string(), formatType);
+
+			}
 			textureList.push_back(std::move(texture));
-
+			texturePathMap[pathStr] = static_cast<int32_t>(textureList.size()) - 1;
 			return static_cast<int32_t>(textureList.size()) - 1;
 		}
 	}

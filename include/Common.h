@@ -39,9 +39,9 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 constexpr uint32_t MAX_LIGHT_COUNT = 64;
 
 constexpr uint32_t MAX_OBJECT_COUNT = 1000;
-constexpr uint32_t MAX_MESH_COUNT = 3000;
+constexpr uint32_t MAX_MESH_COUNT = 10000;
 constexpr uint32_t MAX_MATERIAL_COUNT = 512;
-constexpr uint32_t MAX_TEXTURE_COUNT = 512;
+constexpr uint32_t MAX_TEXTURE_COUNT = 2048;
 
 
 struct SwapChainSupportDetails {
