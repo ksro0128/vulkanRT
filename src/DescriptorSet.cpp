@@ -254,14 +254,14 @@ void DescriptorSet::initAttachment(VulkanContext* context, DescriptorSetLayout* 
 }
 
 std::unique_ptr<DescriptorSet> DescriptorSet::createShadowDescriptorSet(VulkanContext* context, DescriptorSetLayout* layout,
-	UniformBuffer* lightMatrixBuffer, std::vector<Texture*>& shadowMapTextures) {
+	UniformBuffer* lightMatrixBuffer, std::vector<Texture*>& shadowMapTextures, Texture* shadowCubeMapTexture) {
 	std::unique_ptr<DescriptorSet> descriptorSet = std::unique_ptr<DescriptorSet>(new DescriptorSet());
-	descriptorSet->initShadow(context, layout, lightMatrixBuffer, shadowMapTextures);
+	descriptorSet->initShadow(context, layout, lightMatrixBuffer, shadowMapTextures, shadowCubeMapTexture);
 	return descriptorSet;
 }
 
 void DescriptorSet::initShadow(VulkanContext* context, DescriptorSetLayout* layout,
-	UniformBuffer* lightMatrixBuffer, std::vector<Texture*>& shadowMapTextures) {
+	UniformBuffer* lightMatrixBuffer, std::vector<Texture*>& shadowMapTextures, Texture* shadowCubeMapTexture) {
 	this->context = context;
 
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -277,7 +277,7 @@ void DescriptorSet::initShadow(VulkanContext* context, DescriptorSetLayout* layo
 	VkDescriptorBufferInfo bufferInfo{};
 	bufferInfo.buffer = lightMatrixBuffer->getBuffer();
 	bufferInfo.offset = 0;
-	bufferInfo.range = sizeof(LightMatrix) * 11;
+	bufferInfo.range = sizeof(LightMatrix) * 13;
 
 	VkWriteDescriptorSet uboWrite{};
 	uboWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -305,6 +305,21 @@ void DescriptorSet::initShadow(VulkanContext* context, DescriptorSetLayout* layo
 	imageWrite.descriptorCount = static_cast<uint32_t>(imageInfos.size());
 	imageWrite.pImageInfo = imageInfos.data();
 
-	std::array<VkWriteDescriptorSet, 2> writes = { uboWrite, imageWrite };
+	VkDescriptorImageInfo cubeMapInfo{};
+	cubeMapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	cubeMapInfo.imageView = shadowCubeMapTexture->getImageView();
+	cubeMapInfo.sampler = shadowCubeMapTexture->getSampler();
+
+	VkWriteDescriptorSet cubeMapWrite{};
+	cubeMapWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	cubeMapWrite.dstSet = m_descriptorSet;
+	cubeMapWrite.dstBinding = 2;
+	cubeMapWrite.dstArrayElement = 0;
+	cubeMapWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	cubeMapWrite.descriptorCount = 1;
+	cubeMapWrite.pImageInfo = &cubeMapInfo;
+
+
+	std::array<VkWriteDescriptorSet, 3> writes = { uboWrite, imageWrite, cubeMapWrite };
 	vkUpdateDescriptorSets(context->getDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }

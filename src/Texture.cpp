@@ -146,6 +146,7 @@ std::unique_ptr<Texture> Texture::createCubeMapTexture(VulkanContext* context, u
 void Texture::initCubeMapTexture(VulkanContext* context, uint32_t width,
 	uint32_t height, VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags) {
 	this->context = context;
+	m_format = format;
 
 	m_imageBuffer = ImageBuffer::createCubeMapImageBuffer(context, width, height, format, usage, aspectFlags);
 

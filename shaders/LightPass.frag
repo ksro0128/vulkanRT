@@ -37,10 +37,12 @@ layout(set = 1, binding = 2) uniform sampler2D gAlbedo;
 layout(set = 1, binding = 3) uniform sampler2D gPBR;
 
 layout(set = 2, binding = 0) uniform LightMatrixBuffer {
-    mat4 lightMatrices[12];
+    mat4 lightMatrices[13];
 };
 
 layout(set = 2, binding = 1) uniform sampler2D shadowMaps[7];
+
+layout(set = 2, binding = 2) uniform samplerCube shadowCubeMap;
 
 
 // Fresnel-Schlick Approximation
@@ -87,6 +89,69 @@ float PCFShadow(sampler2D shadowMap, vec3 shadowCoord) {
     return shadow / 9.0;
 }
 
+uint getCubeFace(vec3 L) {
+    vec3 absL = abs(L);
+    uint faceIndex;
+
+    if (absL.x > absL.y && absL.x > absL.z) {
+        // +X or -X
+        faceIndex = (L.x > 0.0) ? 0u : 1u;
+    } else if (absL.y > absL.x && absL.y > absL.z) {
+        // +Y or -Y
+        faceIndex = (L.y > 0.0) ? 2u : 3u;
+    } else {
+        // +Z or -Z
+        faceIndex = (L.z > 0.0) ? 4u : 5u;
+    }
+
+    return faceIndex;
+}
+
+
+vec3 rotatedVectors[8];
+
+vec3 getRotationAxis(vec3 direction) {
+    vec3 worldUp = vec3(0.0, 1.0, 0.0);
+    
+    if (abs(dot(direction, worldUp)) > 0.99) {
+        return normalize(vec3(1.0, 0.0, 0.0));
+    }
+
+    return normalize(cross(direction, worldUp));
+}
+
+vec3 rotateVector(vec3 v, vec3 axis, float angle) {
+    float cosTheta = cos(angle);
+    float sinTheta = sin(angle);
+    
+    return v * cosTheta + cross(axis, v) * sinTheta + axis * dot(axis, v) * (1.0 - cosTheta);
+}
+
+
+void generateRotatedVectors(vec3 direction) {
+    vec3 rotationAxis = getRotationAxis(direction);
+    float rotationAngle = radians(360.0 / 8.0);
+    float angleStep = radians(0.1);
+    for (int i = 0; i < 8; i++) {
+        vec3 newRotationAxis = rotateVector(rotationAxis, direction, rotationAngle * float(i));
+        rotatedVectors[i] = rotateVector(direction, newRotationAxis, angleStep);
+    }
+}
+
+float PCFShadowCube(samplerCube shadowMap, vec3 fragToLight, float currentDepth) {
+    float shadow = 0.0;
+    generateRotatedVectors(fragToLight);
+
+    float closestDepth = texture(shadowMap, fragToLight).r;
+    shadow += (currentDepth - 0.005 > closestDepth) ? 0.0 : 1.0;
+
+    for (int i = 0; i < 8; i++) {
+        closestDepth = texture(shadowMap, rotatedVectors[i]).r;
+        shadow += (currentDepth - 0.005 > closestDepth) ? 0.0 : 1.0;
+    }
+    
+    return shadow / 9.0;
+}
 
 void main() {
     vec3 fragPos = texture(gPosition, fragTexCoord).xyz;
@@ -120,13 +185,7 @@ void main() {
                 vec4 lightSpacePos = lightViewProj * vec4(fragPos, 1.0);
                 vec3 shadowCoord = lightSpacePos.xyz / lightSpacePos.w;
                 shadowCoord.xy = shadowCoord.xy * 0.5 + 0.5;
-                float shadowFactor = PCFShadow(shadowMaps[light.shadowMapIndex], shadowCoord);
-                
-                // debug
-                // float cloestDepth = texture(shadowMaps[light.shadowMapIndex], shadowCoord.xy).r;
-                // float shadowFactor = shadowCoord.z - 0.001 > cloestDepth ? 0.0 : 1.0;
-                
-                
+                float shadowFactor = PCFShadow(shadowMaps[light.shadowMapIndex], shadowCoord);   
                 attenuation *= shadowFactor;
             }
 
@@ -140,6 +199,14 @@ void main() {
             attenuation = 1.0 / (constant + linear * distance + quadratic * (distance * distance));
             float rangeFactor = clamp(1.0 - distance / light.range, 0.0, 1.0);
             attenuation *= rangeFactor;
+            if (light.castsShadow == 1 && light.shadowMapIndex != -1) {
+                uint faceIndex = getCubeFace(-L);
+                mat4 lightViewProj = lightMatrices[light.shadowMapIndex + faceIndex];
+                vec4 lightSpacePos = lightViewProj * vec4(fragPos, 1.0);
+                float currentDepth = lightSpacePos.z / lightSpacePos.w;
+                float shadowFactor = PCFShadowCube(shadowCubeMap, -L, currentDepth);
+                attenuation *= shadowFactor;
+            }
         }
         else { // spot
             L = normalize(light.position - fragPos);
@@ -164,9 +231,6 @@ void main() {
                 vec3 shadowCoord = lightSpacePos.xyz / lightSpacePos.w;
                 shadowCoord.xy = shadowCoord.xy * 0.5 + 0.5;
                 float shadowFactor = PCFShadow(shadowMaps[light.shadowMapIndex], shadowCoord);
-                // debug
-                // float cloestDepth = texture(shadowMaps[light.shadowMapIndex], shadowCoord.xy).r;
-                // float shadowFactor = shadowCoord.z - 0.001 > cloestDepth ? 0.0 : 1.0;
                 attenuation *= shadowFactor;
             }
         }

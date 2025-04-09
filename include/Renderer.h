@@ -123,9 +123,10 @@ private:
 
 	void printAllResources();
 
-	void transferImageLayout(VkCommandBuffer cmd, Texture* texture, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage);
+	void transferImageLayout(VkCommandBuffer cmd, Texture* texture, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, uint32_t layerCount = 1);
 
 	void updateCamera(float deltaTime);
 
 	glm::mat4 computeLightMatrix(Light& light);
+	glm::mat4 computePointLightMatrix(Light& light, uint32_t faceIndex);
 };

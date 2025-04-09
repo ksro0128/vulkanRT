@@ -55,7 +55,7 @@ void Renderer::init(GLFWwindow* window) {
 		m_objectInstanceBuffers[i] = StorageBuffer::createStorageBuffer(m_context.get(), sizeof(ObjectInstance) * MAX_OBJECT_COUNT * 2);
 		m_modelBuffers[i] = StorageBuffer::createStorageBuffer(m_context.get(), sizeof(ModelBuffer) * MAX_OBJECT_COUNT);
 		m_materialBuffers[i] = StorageBuffer::createStorageBuffer(m_context.get(), sizeof(Material) * MAX_MATERIAL_COUNT * 2);
-		m_lightMatrixBuffers[i] = UniformBuffer::createUniformBuffer(m_context.get(), sizeof(LightMatrix) * 11);
+		m_lightMatrixBuffers[i] = UniformBuffer::createUniformBuffer(m_context.get(), sizeof(LightMatrix) * 13);
 	}
 
 	// renderpass
@@ -133,7 +133,7 @@ void Renderer::init(GLFWwindow* window) {
 		for (int j = 0; j < m_shadowMapTextures[i].size(); j++) {
 			shadowTextures.push_back(m_shadowMapTextures[i][j].get());
 		}
-		m_shadowDescSets[i] = DescriptorSet::createShadowDescriptorSet(m_context.get(), m_shadowLayout.get(), m_lightMatrixBuffers[i].get(), shadowTextures);
+		m_shadowDescSets[i] = DescriptorSet::createShadowDescriptorSet(m_context.get(), m_shadowLayout.get(), m_lightMatrixBuffers[i].get(), shadowTextures, m_shadowCubeMapTextures[i].get());
 	}
 
 	// pipeline
@@ -152,7 +152,6 @@ void Renderer::init(GLFWwindow* window) {
 	m_scene = Scene::createScene(m_modelList.size(), m_materialList.size(), m_textureList.size());
 
 	//descriptor set update
-
 	std::vector<Material> materials;
 	for (int32_t i = 0; i < m_materialList.size(); i++) {
 		materials.push_back(m_materialList[i]);
@@ -168,7 +167,12 @@ void Renderer::init(GLFWwindow* window) {
 				0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
 		}
+		transferImageLayout(cmd, m_shadowCubeMapTextures[i].get(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, 6);
 	}
+
+
 	VulkanUtil::endSingleTimeCommands(m_context.get(), cmd);
 }
 
@@ -222,6 +226,11 @@ void Renderer::render() {
 			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 	}
 
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_shadowCubeMapTextures[currentFrame].get(),
+		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 6);
+
 
 	// record command buffer
 	recordGbufferCommandBuffer(objectMap);
@@ -263,8 +272,6 @@ void Renderer::render() {
 		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
-
-
 	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_outputTextures[currentFrame].get(),
 		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
@@ -276,6 +283,11 @@ void Renderer::render() {
 			VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
 	}
+
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_shadowCubeMapTextures[currentFrame].get(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, 6);
 	
 	
 	recordImGuiCommandBuffer(imageIndex);
@@ -660,7 +672,7 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 	int32_t spotCount = 0;
 	int32_t pointCount = 0;
 
-	std::array<LightMatrix, 12> lightMatrices;
+	std::array<LightMatrix, 13> lightMatrices;
 	memset(&lightMatrices, 0, sizeof(lightMatrices));
 	for (int i = 0; i < lights.size(); ++i) {
 		Light& light = lights[i];
@@ -672,7 +684,6 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 		int type = light.type;
 		int shadowMapIndex = 0;
 
-		// Point light�� ���߿� ó������
 		if (type == LIGHT_TYPE_POINT && pointCount > 0) // point light 1개만 처리
 			continue;
 
@@ -696,41 +707,85 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 			shadowMapIndex = 7;
 		}
 
-		glm::mat4 lightViewProj = computeLightMatrix(light);
 		VkClearValue clearValue{};
 		clearValue.depthStencil = { 1.0f, 0 };
-		VkRenderPassBeginInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = m_shadowMapRenderPass->getRenderPass();
-		renderPassInfo.framebuffer = m_shadowMapFrameBuffers[currentFrame][shadowMapIndex]->getFrameBuffer();
-		renderPassInfo.renderArea.offset = { 0, 0 };
-		renderPassInfo.renderArea.extent = { 2048, 2048 };
-		renderPassInfo.clearValueCount = 1;
-		renderPassInfo.pClearValues = &clearValue;
 
-		vkCmdBeginRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdBindPipeline(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipeline());
-		vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipelineLayout(), 0, 1, &m_objectMaterialDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
-		vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipelineLayout(), 1, 1, &m_bindlessDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
-		// Push Constant
-		vkCmdPushConstants(
-			m_commandBuffers->getCommandBuffers()[currentFrame],
-			m_shadowMapPipeline->getPipelineLayout(),
-			VK_SHADER_STAGE_VERTEX_BIT,
-			0, sizeof(glm::mat4),
-			&lightViewProj
-		);
-		int32_t index = 0;
-		for (const auto& [key, value] : objectMap) {
-			for (int32_t i = 0; i < m_modelList[key].mesh.size(); i++) {
-				int32_t startIndex = index;
-				m_meshList[m_modelList[key].mesh[i]]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], value.size(), startIndex);
-				index += value.size();
+
+		if (type == LIGHT_TYPE_POINT) {
+			for (int j = 0; j < 6; j++) {
+				glm::mat4 lightViewProj = computePointLightMatrix(light, j);
+
+				VkRenderPassBeginInfo renderPassInfo{};
+				renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+				renderPassInfo.renderPass = m_shadowMapRenderPass->getRenderPass();
+				renderPassInfo.framebuffer = m_shadowCubeMapFrameBuffers[currentFrame][j]->getFrameBuffer();
+				renderPassInfo.renderArea.offset = { 0, 0 };
+				renderPassInfo.renderArea.extent = { 2048, 2048 };
+				renderPassInfo.clearValueCount = 1;
+				renderPassInfo.pClearValues = &clearValue;
+
+				vkCmdBeginRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+				vkCmdBindPipeline(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipeline());
+				vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipelineLayout(), 0, 1, &m_objectMaterialDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
+				vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipelineLayout(), 1, 1, &m_bindlessDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
+				vkCmdPushConstants(
+					m_commandBuffers->getCommandBuffers()[currentFrame],
+					m_shadowMapPipeline->getPipelineLayout(),
+					VK_SHADER_STAGE_VERTEX_BIT,
+					0, sizeof(glm::mat4),
+					&lightViewProj
+				);
+				int32_t index = 0;
+				for (const auto& [key, value] : objectMap) {
+					for (int32_t i = 0; i < m_modelList[key].mesh.size(); i++) {
+						int32_t startIndex = index;
+						m_meshList[m_modelList[key].mesh[i]]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], value.size(), startIndex);
+						index += value.size();
+					}
+				}
+				light.shadowMapIndex = shadowMapIndex;
+				lightMatrices[shadowMapIndex + j].mat = lightViewProj;
+				vkCmdEndRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame]);
 			}
 		}
-		light.shadowMapIndex = shadowMapIndex;
-		lightMatrices[shadowMapIndex].mat = lightViewProj;
-		vkCmdEndRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame]);
+		else {
+
+			glm::mat4 lightViewProj = computeLightMatrix(light);
+
+			VkRenderPassBeginInfo renderPassInfo{};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassInfo.renderPass = m_shadowMapRenderPass->getRenderPass();
+			renderPassInfo.framebuffer = m_shadowMapFrameBuffers[currentFrame][shadowMapIndex]->getFrameBuffer();
+			renderPassInfo.renderArea.offset = { 0, 0 };
+			renderPassInfo.renderArea.extent = { 2048, 2048 };
+			renderPassInfo.clearValueCount = 1;
+			renderPassInfo.pClearValues = &clearValue;
+
+			vkCmdBeginRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBindPipeline(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipeline());
+			vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipelineLayout(), 0, 1, &m_objectMaterialDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
+			vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipelineLayout(), 1, 1, &m_bindlessDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
+			
+			vkCmdPushConstants(
+				m_commandBuffers->getCommandBuffers()[currentFrame],
+				m_shadowMapPipeline->getPipelineLayout(),
+				VK_SHADER_STAGE_VERTEX_BIT,
+				0, sizeof(glm::mat4),
+				&lightViewProj
+			);
+			int32_t index = 0;
+			for (const auto& [key, value] : objectMap) {
+				for (int32_t i = 0; i < m_modelList[key].mesh.size(); i++) {
+					int32_t startIndex = index;
+					m_meshList[m_modelList[key].mesh[i]]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], value.size(), startIndex);
+					index += value.size();
+				}
+			}
+			light.shadowMapIndex = shadowMapIndex;
+			lightMatrices[shadowMapIndex].mat = lightViewProj;
+			vkCmdEndRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame]);
+		}
+
 	}
 	m_lightMatrixBuffers[currentFrame]->updateUniformBuffer(&lightMatrices[0], sizeof(LightMatrix) * lightMatrices.size());
 }
@@ -756,7 +811,7 @@ void Renderer::recordImGuiCommandBuffer(uint32_t imageIndex) {
 }
 
 void Renderer::transferImageLayout( VkCommandBuffer cmd, Texture* texture, VkImageLayout oldLayout, VkImageLayout newLayout,
-	VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage) {
+	VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, uint32_t layerCount) {
 	VkImageMemoryBarrier barrier{};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	barrier.oldLayout = oldLayout;
@@ -773,7 +828,7 @@ void Renderer::transferImageLayout( VkCommandBuffer cmd, Texture* texture, VkIma
 	barrier.subresourceRange.baseMipLevel = 0;
 	barrier.subresourceRange.levelCount = 1;
 	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
+	barrier.subresourceRange.layerCount = layerCount;
 
 	vkCmdPipelineBarrier(
 		cmd,
@@ -865,4 +920,30 @@ glm::mat4 Renderer::computeLightMatrix(Light& light) {
 	}
 
 	return lightProj * lightView;
+}
+
+glm::mat4 Renderer::computePointLightMatrix(Light& light, uint32_t faceIndex) {
+	static const glm::vec3 targets[6] = {
+		glm::vec3(1,  0,  0), // +X
+		glm::vec3(-1,  0,  0), // -X
+		glm::vec3(0,  1,  0), // +Y
+		glm::vec3(0, -1,  0), // -Y
+		glm::vec3(0,  0,  1), // +Z
+		glm::vec3(0,  0, -1)  // -Z
+	};
+	static const glm::vec3 ups[6] = {
+		glm::vec3(0, -1,  0), // +X
+		glm::vec3(0, -1,  0), // -X
+		glm::vec3(0,  0,  1), // +Y
+		glm::vec3(0,  0, -1), // -Y
+		glm::vec3(0, -1,  0), // +Z
+		glm::vec3(0, -1,  0)  // -Z
+	};
+
+	glm::vec3 lightPos = light.position;
+	glm::mat4 view = glm::lookAt(lightPos, lightPos + targets[faceIndex], ups[faceIndex]);
+	glm::mat4 proj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 50.0f);
+	//proj[1][1] *= -1.0f;
+
+	return proj * view;
 }

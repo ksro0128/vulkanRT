@@ -173,7 +173,7 @@ std::unique_ptr<DescriptorSetLayout> DescriptorSetLayout::createShadowDescriptor
 void DescriptorSetLayout::initShadow(VulkanContext* context) {
 	this->context = context;
 	
-	std::vector<VkDescriptorSetLayoutBinding> bindings(2);
+	std::vector<VkDescriptorSetLayoutBinding> bindings(3);
 
 	bindings[0].binding = 0;
 	bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -186,6 +186,12 @@ void DescriptorSetLayout::initShadow(VulkanContext* context) {
 	bindings[1].descriptorCount = 7;
 	bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	bindings[1].pImmutableSamplers = nullptr;
+
+	bindings[2].binding = 2;
+	bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	bindings[2].descriptorCount = 1;
+	bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	bindings[2].pImmutableSamplers = nullptr;
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo{};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
