@@ -11,6 +11,11 @@ public:
 	static VkCommandBuffer beginSingleTimeCommands(VulkanContext* context);
 	static void endSingleTimeCommands(VulkanContext* context, VkCommandBuffer commandBuffer);
 	
+	static void createBuffer(VulkanContext* context, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+	static void copyBuffer(VulkanContext* context, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+	static VkDeviceAddress getDeviceAddress(VulkanContext* context, VkBuffer buffer);
+
+
 	static VkFormat findDepthFormat(VulkanContext* context);
 	static VkFormat findSupportedFormat(VulkanContext* context, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 	static std::vector<char> readFile(const std::string& filename);

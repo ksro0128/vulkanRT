@@ -1,0 +1,40 @@
+#version 460
+#extension GL_EXT_ray_tracing : require
+#extension GL_EXT_nonuniform_qualifier : enable
+
+layout(set = 0, binding = 0) uniform CameraBuffer {
+    mat4 view;
+    mat4 proj;
+    vec3 camPos;
+} camera;
+
+layout(set = 1, binding = 0, rgba16f) uniform image2D outputImage;
+layout(set = 1, binding = 1) uniform accelerationStructureEXT topLevelAS;
+
+layout(location = 0) rayPayloadEXT vec4 payload;
+
+void main() {
+    const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
+    const vec2 resolution = vec2(gl_LaunchSizeEXT.xy);
+    vec2 ndc = (pixelCenter / resolution) * 2.0 - 1.0;
+
+    vec4 rayOrigin = inverse(camera.view)[3];
+    vec4 rayTarget = inverse(camera.proj * camera.view) * vec4(ndc, 1.0, 1.0);
+    rayTarget /= rayTarget.w;
+    vec3 direction = normalize(rayTarget.xyz - rayOrigin.xyz);
+
+    payload = vec4(0.0);
+
+    traceRayEXT(topLevelAS,
+        gl_RayFlagsOpaqueEXT,
+        0xFF,                // cull mask
+        0, 0, 0,             // sbtRecordOffset, sbtRecordStride, missIndex
+        rayOrigin.xyz,
+        0.001,               // min t
+        direction,
+        10000.0,             // max t
+        0                    // payload location
+    );
+
+    imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), payload);
+}

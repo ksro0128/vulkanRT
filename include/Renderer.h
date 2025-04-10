@@ -18,6 +18,8 @@
 #include "CommandBuffers.h"
 #include "GuiRenderer.h"
 #include "Scene.h"
+#include "AccelerationStructure.h"
+#include "RayTracingPipeline.h"
 
 class Renderer {
 public:
@@ -41,6 +43,9 @@ private:
 	std::vector<Material> m_materialList;
 	std::vector<Model> m_modelList;
 	std::unordered_map<std::string, int32_t> m_texturePathMap;
+	std::vector<std::unique_ptr<BottomLevelAS>> m_blasList;
+	std::vector<std::unique_ptr<TopLevelAS>> m_tlas;
+
 
 	// descriptorset layout
 	std::unique_ptr<DescriptorSetLayout> m_globalLayout;
@@ -48,6 +53,7 @@ private:
 	std::unique_ptr<DescriptorSetLayout> m_bindlessLayout;
 	std::unique_ptr<DescriptorSetLayout> m_attachmentLayout;
 	std::unique_ptr<DescriptorSetLayout> m_shadowLayout;
+	std::unique_ptr<DescriptorSetLayout> m_rayTracingLayout;
 
 	// buffer
 	std::array<std::unique_ptr<UniformBuffer>, MAX_FRAMES_IN_FLIGHT> m_cameraBuffers;
@@ -68,6 +74,7 @@ private:
 	std::vector<std::unique_ptr<Texture>> m_outputTextures;
 	std::vector<std::vector<std::unique_ptr<Texture>>> m_shadowMapTextures;
 	std::vector<std::unique_ptr<Texture>> m_shadowCubeMapTextures;
+	std::vector<std::unique_ptr<Texture>> m_rtReflectionTextures;
 
 	// framebuffer
 	std::vector<std::unique_ptr<FrameBuffer>> m_gbufferFrameBuffers;
@@ -82,12 +89,15 @@ private:
 	std::array<std::unique_ptr<DescriptorSet>, MAX_FRAMES_IN_FLIGHT> m_bindlessDescSets;
 	std::vector< std::unique_ptr<DescriptorSet> > m_attachmentDescSets;
 	std::array<std::unique_ptr<DescriptorSet>, MAX_FRAMES_IN_FLIGHT> m_shadowDescSets;
+	std::vector<std::unique_ptr<DescriptorSet>> m_rtDescSets;
+
 
 
 	// pipeline
 	std::unique_ptr<Pipeline> m_gbufferPipeline;
 	std::unique_ptr<Pipeline> m_lightPassPipeline;
 	std::unique_ptr<Pipeline> m_shadowMapPipeline;
+	std::unique_ptr<RayTracingPipeline> m_rtPipeline;
 
 	// command buffer
 	std::unique_ptr<CommandBuffers> m_commandBuffers;
@@ -116,11 +126,15 @@ private:
 	void createDefaultModels();
 
 	std::unordered_map<int32_t, std::vector<int32_t>> createObjectMap();
+	void createModelInstances(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices, std::vector<ModelBuffer>& modelBuffers);
+	void updateObjectInstances(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices);
 
-	void recordGbufferCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& objectMap);
+	// record command buffer
+	void recordGbufferCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices);
 	void recordLightPassCommandBuffer();
 	void recordImGuiCommandBuffer(uint32_t imageIndex);
-	void recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& objectMap);
+	void recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices);
+	void recordRayTracingCommandBuffer();
 
 	void printAllResources();
 

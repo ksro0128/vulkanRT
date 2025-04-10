@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_beta.h>
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
@@ -43,6 +44,27 @@ constexpr uint32_t MAX_MESH_COUNT = 10000;
 constexpr uint32_t MAX_MATERIAL_COUNT = 512;
 constexpr uint32_t MAX_TEXTURE_COUNT = 2048;
 
+// Ray Tracing Acceleration Structure
+extern PFN_vkCreateAccelerationStructureKHR g_vkCreateAccelerationStructureKHR;
+extern PFN_vkDestroyAccelerationStructureKHR g_vkDestroyAccelerationStructureKHR;
+extern PFN_vkGetAccelerationStructureBuildSizesKHR g_vkGetAccelerationStructureBuildSizesKHR;
+extern PFN_vkCmdBuildAccelerationStructuresKHR g_vkCmdBuildAccelerationStructuresKHR;
+extern PFN_vkGetAccelerationStructureDeviceAddressKHR g_vkGetAccelerationStructureDeviceAddressKHR;
+
+// Ray Tracing Pipeline
+extern PFN_vkCreateRayTracingPipelinesKHR g_vkCreateRayTracingPipelinesKHR;
+extern PFN_vkGetRayTracingShaderGroupHandlesKHR g_vkGetRayTracingShaderGroupHandlesKHR;
+extern PFN_vkCmdTraceRaysKHR g_vkCmdTraceRaysKHR;
+
+inline VkTransformMatrixKHR glmToVkTransform(const glm::mat4& mat) {
+	VkTransformMatrixKHR out{};
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 4; ++j) {
+			out.matrix[i][j] = mat[j][i];
+		}
+	}
+	return out;
+}
 
 struct SwapChainSupportDetails {
 	VkSurfaceCapabilitiesKHR capabilities;
@@ -80,7 +102,13 @@ const std::vector<const char*> validationLayers = {
 const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-	VK_KHR_MAINTENANCE3_EXTENSION_NAME
+	VK_KHR_MAINTENANCE3_EXTENSION_NAME,
+	VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+	VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+	VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+	VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+	VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME
 };
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,

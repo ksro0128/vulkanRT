@@ -51,6 +51,7 @@ private:
 	void createLogicalDevice();
 	void createCommandPool();
 	void createDescriptorPool();
+	void loadRayTracingFunctions();
 
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

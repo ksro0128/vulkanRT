@@ -20,10 +20,10 @@ VkShaderModule Pipeline::createShaderModule(VulkanContext* context, const std::v
 {
 	VkShaderModuleCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	createInfo.codeSize = code.size();									// 코드 길이 입력
-	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data()); // 코드 내용 입력
+	createInfo.codeSize = code.size();
+	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
-	// 쉐이더 모듈 생성
+
 	VkShaderModule shaderModule;
 	if (vkCreateShaderModule(context->getDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
 	{

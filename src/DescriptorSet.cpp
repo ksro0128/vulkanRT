@@ -323,3 +323,58 @@ void DescriptorSet::initShadow(VulkanContext* context, DescriptorSetLayout* layo
 	std::array<VkWriteDescriptorSet, 3> writes = { uboWrite, imageWrite, cubeMapWrite };
 	vkUpdateDescriptorSets(context->getDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
+
+std::unique_ptr<DescriptorSet> DescriptorSet::createRayTracingDescriptorSet(VulkanContext* context, DescriptorSetLayout* layout,
+	Texture* rtReflectionTexture, VkAccelerationStructureKHR tlas) {
+	std::unique_ptr<DescriptorSet> descriptorSet = std::unique_ptr<DescriptorSet>(new DescriptorSet());
+	descriptorSet->initRayTracing(context, layout, rtReflectionTexture, tlas);
+	return descriptorSet;
+}	
+
+void DescriptorSet::initRayTracing(VulkanContext* context, DescriptorSetLayout* layout,
+	Texture* rtReflectionTexture, VkAccelerationStructureKHR tlas) {
+	this->context = context;
+
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = context->getDescriptorPool();
+	allocInfo.descriptorSetCount = 1;
+	VkDescriptorSetLayout vkLayout = layout->getDescriptorSetLayout();
+	allocInfo.pSetLayouts = &vkLayout;
+
+	if (vkAllocateDescriptorSets(context->getDevice(), &allocInfo, &m_descriptorSet) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate ray tracing descriptor set!");
+	}
+
+	VkDescriptorImageInfo imageInfo{};
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	imageInfo.imageView = rtReflectionTexture->getImageView();
+	imageInfo.sampler = VK_NULL_HANDLE;
+
+	VkWriteDescriptorSet imageWrite{};
+	imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	imageWrite.dstSet = m_descriptorSet;
+	imageWrite.dstBinding = 0;
+	imageWrite.dstArrayElement = 0;
+	imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	imageWrite.descriptorCount = 1;
+	imageWrite.pImageInfo = &imageInfo;
+
+	VkWriteDescriptorSetAccelerationStructureKHR accelWriteInfo{};
+	accelWriteInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+	accelWriteInfo.accelerationStructureCount = 1;
+	accelWriteInfo.pAccelerationStructures = &tlas;
+
+	VkWriteDescriptorSet accelWrite{};
+	accelWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	accelWrite.dstSet = m_descriptorSet;
+	accelWrite.dstBinding = 1;
+	accelWrite.dstArrayElement = 0;
+	accelWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+	accelWrite.descriptorCount = 1;
+	accelWrite.pNext = &accelWriteInfo;
+
+	std::array<VkWriteDescriptorSet, 2> descriptorWrites = { imageWrite, accelWrite };
+
+	vkUpdateDescriptorSets(context->getDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+}

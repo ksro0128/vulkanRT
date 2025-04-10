@@ -43,6 +43,13 @@ public:
 		Texture* shadowCubeMapTexture
 	);
 
+	static std::unique_ptr<DescriptorSet> createRayTracingDescriptorSet(
+		VulkanContext* context,
+		DescriptorSetLayout* layout,
+		Texture* rtReflectionTexture,
+		VkAccelerationStructureKHR tlas
+	);
+
 	VkDescriptorSet& getDescriptorSet() { return m_descriptorSet; }
 
 	~DescriptorSet();
@@ -59,5 +66,6 @@ private:
 		const std::vector<std::unique_ptr<Texture>>& textureList);
 	void initAttachment(VulkanContext* context, DescriptorSetLayout* layout, GbufferAttachment& gbufferAttachment);
 	void initShadow(VulkanContext* context, DescriptorSetLayout* layout, UniformBuffer* lightMatrixBuffer, std::vector<Texture*>& shadowMapTextures, Texture* shadowCubeMapTexture);
+	void initRayTracing(VulkanContext* context, DescriptorSetLayout* layout, Texture* rtReflectionTexture, VkAccelerationStructureKHR tlas);
 	void cleanup();
 };

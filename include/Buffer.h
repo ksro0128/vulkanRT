@@ -12,6 +12,10 @@ public:
     virtual ~Buffer() {};
     virtual void cleanup() = 0;
 
+	VkBuffer getBuffer() { return m_buffer; }
+	VkDeviceMemory getBufferMemory() { return m_bufferMemory; }
+	VkDeviceAddress getDeviceAddress();
+
 protected:
     VulkanContext* context;
     VkBuffer m_buffer;
@@ -28,7 +32,9 @@ public:
     ~VertexBuffer();
     void cleanup() override;
     void bind(VkCommandBuffer commandBuffer);
+	uint32_t getVertexCount() { return m_vertexCount; }
 private:
+	uint32_t m_vertexCount = 0;
     void init(VulkanContext* context, std::vector<Vertex> &vertices);
 };
 
@@ -40,7 +46,7 @@ public:
 	void bind(VkCommandBuffer commandBuffer);
 	uint32_t getIndexCount() { return m_indexCount; }
 private:
-	uint32_t m_indexCount;
+	uint32_t m_indexCount = 0;
 
 	void init(VulkanContext* context, std::vector<uint32_t>& indices);
 };
@@ -85,8 +91,6 @@ public:
 	static std::unique_ptr<UniformBuffer> createUniformBuffer(VulkanContext* context, VkDeviceSize buffersize);
 	~UniformBuffer();
 	void updateUniformBuffer(void* data, VkDeviceSize size);
-	VkBuffer getBuffer() { return m_buffer; }
-	VkDeviceMemory getBufferMemory() { return m_bufferMemory; }
 private:
 	void* m_mappedMemory = nullptr;
 
@@ -98,8 +102,6 @@ class StorageBuffer : public Buffer {
 public:
 	static std::unique_ptr<StorageBuffer> createStorageBuffer(VulkanContext* context, VkDeviceSize buffersize);
 	~StorageBuffer();
-	VkBuffer getBuffer() { return m_buffer; }
-	VkDeviceMemory getBufferMemory() { return m_bufferMemory; }
 	VkDeviceSize getCurrentSize() { return m_currentSize; }
 
 	void updateStorageBuffer(void* data, VkDeviceSize totalSize);

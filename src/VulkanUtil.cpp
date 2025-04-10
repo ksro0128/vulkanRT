@@ -109,6 +109,58 @@ void VulkanUtil::endSingleTimeCommands(VulkanContext* context, VkCommandBuffer c
 	vkFreeCommandBuffers(context->getDevice(), context->getCommandPool(), 1, &commandBuffer);
 }
 
+void VulkanUtil::createBuffer(VulkanContext* context, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+	VkBufferCreateInfo bufferInfo{};
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferInfo.size = size;
+	bufferInfo.usage = usage;
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	if (vkCreateBuffer(context->getDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create buffer!");
+	}
+
+	VkMemoryRequirements memRequirements;
+	vkGetBufferMemoryRequirements(context->getDevice(), buffer, &memRequirements);
+
+	VkMemoryAllocateFlagsInfo allocFlagsInfo{};
+	allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+	allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
+
+	VkMemoryAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memRequirements.size;
+	allocInfo.memoryTypeIndex = VulkanUtil::findMemoryType(context, memRequirements.memoryTypeBits, properties);
+	allocInfo.pNext = &allocFlagsInfo;
+
+	if (vkAllocateMemory(context->getDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate buffer memory!");
+	}
+
+	vkBindBufferMemory(context->getDevice(), buffer, bufferMemory, 0);
+}
+
+VkDeviceAddress VulkanUtil::getDeviceAddress(VulkanContext* context, VkBuffer buffer) {
+	VkBufferDeviceAddressInfo addressInfo{};
+	addressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+	addressInfo.buffer = buffer;
+	return vkGetBufferDeviceAddress(context->getDevice(), &addressInfo);
+}
+
+void VulkanUtil::copyBuffer(VulkanContext* context, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+	VkCommandBuffer commandBuffer = VulkanUtil::beginSingleTimeCommands(context);
+
+	VkBufferCopy copyRegion{};
+	copyRegion.srcOffset = 0;
+	copyRegion.dstOffset = 0;
+	copyRegion.size = size;
+	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+	VulkanUtil::endSingleTimeCommands(context, commandBuffer);
+}
+
+
+
 
 VkFormat VulkanUtil::findDepthFormat(VulkanContext* context)
 {

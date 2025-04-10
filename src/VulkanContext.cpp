@@ -17,6 +17,7 @@ void VulkanContext::init(GLFWwindow* window) {
 	createSurface(window);
 	pickPhysicalDevice();
 	createLogicalDevice();
+	loadRayTracingFunctions();
 	createCommandPool();
 	createDescriptorPool();
 }
@@ -306,6 +307,15 @@ void VulkanContext::createLogicalDevice() {
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.sampleRateShading = VK_TRUE;
 
+	// Ray Tracing feature chain
+	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
+	accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+	accelerationStructureFeatures.accelerationStructure = VK_TRUE;
+
+	VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures{};
+	rayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+	rayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
+
 	VkPhysicalDeviceVulkan12Features features12{};
 	features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 	features12.descriptorBindingPartiallyBound = VK_TRUE;
@@ -314,7 +324,12 @@ void VulkanContext::createLogicalDevice() {
 	features12.descriptorIndexing = VK_TRUE;
 	features12.runtimeDescriptorArray = VK_TRUE;
 	features12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+	features12.bufferDeviceAddress = VK_TRUE;
 
+
+	accelerationStructureFeatures.pNext = nullptr;
+	rayTracingPipelineFeatures.pNext = &accelerationStructureFeatures;
+	features12.pNext = &rayTracingPipelineFeatures;
 
 	VkPhysicalDeviceFeatures2 features2{};
 	features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
@@ -327,7 +342,7 @@ void VulkanContext::createLogicalDevice() {
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();
 	createInfo.pNext = &features2;
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-	createInfo.ppEnabledExtensionNames = deviceExtensions.data();;
+	createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
 	if (enableValidationLayers) {
 		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
@@ -390,6 +405,46 @@ void VulkanContext::createDescriptorPool() {
 		throw std::runtime_error("failed to create descriptor pool!");
 	}
 }
+
+PFN_vkCreateAccelerationStructureKHR g_vkCreateAccelerationStructureKHR = nullptr;
+PFN_vkDestroyAccelerationStructureKHR g_vkDestroyAccelerationStructureKHR = nullptr;
+PFN_vkGetAccelerationStructureBuildSizesKHR g_vkGetAccelerationStructureBuildSizesKHR = nullptr;
+PFN_vkCmdBuildAccelerationStructuresKHR g_vkCmdBuildAccelerationStructuresKHR = nullptr;
+PFN_vkGetAccelerationStructureDeviceAddressKHR g_vkGetAccelerationStructureDeviceAddressKHR = nullptr;
+
+PFN_vkCreateRayTracingPipelinesKHR g_vkCreateRayTracingPipelinesKHR = nullptr;
+PFN_vkGetRayTracingShaderGroupHandlesKHR g_vkGetRayTracingShaderGroupHandlesKHR = nullptr;
+PFN_vkCmdTraceRaysKHR g_vkCmdTraceRaysKHR = nullptr;
+
+void VulkanContext::loadRayTracingFunctions() {
+	// Acceleration Structure
+	g_vkCreateAccelerationStructureKHR = reinterpret_cast<PFN_vkCreateAccelerationStructureKHR>(
+		vkGetDeviceProcAddr(m_device, "vkCreateAccelerationStructureKHR"));
+
+	g_vkDestroyAccelerationStructureKHR = reinterpret_cast<PFN_vkDestroyAccelerationStructureKHR>(
+		vkGetDeviceProcAddr(m_device, "vkDestroyAccelerationStructureKHR"));
+
+	g_vkGetAccelerationStructureBuildSizesKHR = reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(
+		vkGetDeviceProcAddr(m_device, "vkGetAccelerationStructureBuildSizesKHR"));
+
+	g_vkCmdBuildAccelerationStructuresKHR = reinterpret_cast<PFN_vkCmdBuildAccelerationStructuresKHR>(
+		vkGetDeviceProcAddr(m_device, "vkCmdBuildAccelerationStructuresKHR"));
+
+	g_vkGetAccelerationStructureDeviceAddressKHR = reinterpret_cast<PFN_vkGetAccelerationStructureDeviceAddressKHR>(
+		vkGetDeviceProcAddr(m_device, "vkGetAccelerationStructureDeviceAddressKHR"));
+
+	// Ray Tracing Pipeline
+	g_vkCreateRayTracingPipelinesKHR = reinterpret_cast<PFN_vkCreateRayTracingPipelinesKHR>(
+		vkGetDeviceProcAddr(m_device, "vkCreateRayTracingPipelinesKHR"));
+
+	g_vkGetRayTracingShaderGroupHandlesKHR = reinterpret_cast<PFN_vkGetRayTracingShaderGroupHandlesKHR>(
+		vkGetDeviceProcAddr(m_device, "vkGetRayTracingShaderGroupHandlesKHR"));
+
+	g_vkCmdTraceRaysKHR = reinterpret_cast<PFN_vkCmdTraceRaysKHR>(
+		vkGetDeviceProcAddr(m_device, "vkCmdTraceRaysKHR"));
+}
+
+
 
 
 

@@ -10,6 +10,7 @@ public:
 	static std::unique_ptr<DescriptorSetLayout> createBindlessDescriptorSetLayout(VulkanContext* context);
 	static std::unique_ptr<DescriptorSetLayout> createAttachmentDescriptorSetLayout(VulkanContext* context);
 	static std::unique_ptr<DescriptorSetLayout> createShadowDescriptorSetLayout(VulkanContext* context);
+	static std::unique_ptr<DescriptorSetLayout> createRayTracingDescriptorSetLayout(VulkanContext* context);
 
 	~DescriptorSetLayout();
 
@@ -24,5 +25,6 @@ private:
 	void initBindless(VulkanContext* context);
 	void initAttachment(VulkanContext* context);
 	void initShadow(VulkanContext* context);
+	void initRayTracing(VulkanContext* context);
 	void cleanup();
 };

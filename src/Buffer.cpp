@@ -17,10 +17,15 @@ void Buffer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
 	VkMemoryRequirements memRequirements;
 	vkGetBufferMemoryRequirements(context->getDevice(), buffer, &memRequirements);
 
+	VkMemoryAllocateFlagsInfo allocFlagsInfo{};
+	allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+	allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
+
 	VkMemoryAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
 	allocInfo.memoryTypeIndex = VulkanUtil::findMemoryType(context, memRequirements.memoryTypeBits, properties);
+	allocInfo.pNext = &allocFlagsInfo;
 
 	if (vkAllocateMemory(context->getDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
 	{
@@ -40,6 +45,13 @@ void Buffer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize siz
 	VulkanUtil::endSingleTimeCommands(context, commandBuffer);	
 }
 
+VkDeviceAddress Buffer::getDeviceAddress() {
+	VkBufferDeviceAddressInfo addressInfo{};
+	addressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+	addressInfo.buffer = m_buffer;
+	return vkGetBufferDeviceAddress(context->getDevice(), &addressInfo);
+}
+
 // vertex buffer
 std::unique_ptr<VertexBuffer> VertexBuffer::createVertexBuffer(VulkanContext* context, std::vector<Vertex> &vertices) {
 	std::unique_ptr<VertexBuffer> buffer = std::unique_ptr<VertexBuffer>(new VertexBuffer());
@@ -49,6 +61,7 @@ std::unique_ptr<VertexBuffer> VertexBuffer::createVertexBuffer(VulkanContext* co
 
 void VertexBuffer::init(VulkanContext* context, std::vector<Vertex> &vertices) {
 	this->context = context;
+	m_vertexCount = static_cast<uint32_t>(vertices.size());
 	
     VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
@@ -64,7 +77,7 @@ void VertexBuffer::init(VulkanContext* context, std::vector<Vertex> &vertices) {
 
 	vkUnmapMemory(context->getDevice(), stagingBufferMemory);
 
-	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
 				 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_buffer, m_bufferMemory);
 	copyBuffer(stagingBuffer, m_buffer, bufferSize);
 
@@ -109,7 +122,8 @@ void IndexBuffer::init(VulkanContext* context, std::vector<uint32_t>& indices) {
 	memcpy(data, indices.data(), (size_t)bufferSize);
 	vkUnmapMemory(context->getDevice(), stagingBufferMemory);
 
-	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_buffer, m_bufferMemory);
+	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_buffer, m_bufferMemory);
 	copyBuffer(stagingBuffer, m_buffer, bufferSize);
 
 	vkDestroyBuffer(context->getDevice(), stagingBuffer, nullptr);

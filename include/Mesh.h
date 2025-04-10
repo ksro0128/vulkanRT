@@ -12,9 +12,10 @@ public:
 
 	~Mesh();
 	void draw(VkCommandBuffer commandBuffer);
-
 	void drawInstance(VkCommandBuffer commandBuffer, uint32_t instanceCount, uint32_t firstInstance = 0);
 
+	VertexBuffer* getVertexBuffer() { return m_vertexBuffer.get(); }
+	IndexBuffer* getIndexBuffer() { return m_indexBuffer.get(); }
 private:
 	VulkanContext* context;
 	std::unique_ptr<VertexBuffer> m_vertexBuffer;

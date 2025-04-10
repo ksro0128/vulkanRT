@@ -41,7 +41,8 @@ void Renderer::init(GLFWwindow* window) {
 
 	//loadModel("./main1_sponza/NewSponza_Main_glTF_003.gltf");
 	//loadModel("./pkg_a_curtains/NewSponza_Curtains_glTF.gltf");
-	loadModel("nodecal.glb");
+	//loadModel("./assets/models/knight.glb");
+	//loadModel("nodecal.glb");
 
 	// descriptorset layout
 	m_globalLayout = DescriptorSetLayout::createGlobalDescriptorSetLayout(m_context.get());
@@ -49,6 +50,7 @@ void Renderer::init(GLFWwindow* window) {
 	m_bindlessLayout = DescriptorSetLayout::createBindlessDescriptorSetLayout(m_context.get());
 	m_attachmentLayout = DescriptorSetLayout::createAttachmentDescriptorSetLayout(m_context.get());
 	m_shadowLayout = DescriptorSetLayout::createShadowDescriptorSetLayout(m_context.get());
+	m_rayTracingLayout = DescriptorSetLayout::createRayTracingDescriptorSetLayout(m_context.get());
 
 
 	// buffers
@@ -93,6 +95,11 @@ void Renderer::init(GLFWwindow* window) {
 	m_shadowCubeMapTextures.resize(MAX_FRAMES_IN_FLIGHT);
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		m_shadowCubeMapTextures[i] = Texture::createCubeMapTexture(m_context.get(), 2048, 2048, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+	}
+
+	m_rtReflectionTextures.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		m_rtReflectionTextures[i] = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 
 	// framebuffer
@@ -143,6 +150,7 @@ void Renderer::init(GLFWwindow* window) {
 	m_gbufferPipeline = Pipeline::createGbufferPipeline(m_context.get(), m_gbufferRenderPass.get(), {m_globalLayout.get(), m_objectMaterialLayout.get(), m_bindlessLayout.get()});
 	m_lightPassPipeline = Pipeline::createLightPassPipeline(m_context.get(), m_lightPassRenderPass.get(), { m_globalLayout.get(), m_attachmentLayout.get(), m_shadowLayout.get() });
 	m_shadowMapPipeline = Pipeline::createShadowMapPipeline(m_context.get(), m_shadowMapRenderPass.get(), { m_objectMaterialLayout.get(), m_bindlessLayout.get() });
+	m_rtPipeline = RayTracingPipeline::createRayTracingPipeline(m_context.get(), { m_globalLayout.get(), m_rayTracingLayout.get()});
 
 	printAllResources();
 
@@ -173,10 +181,39 @@ void Renderer::init(GLFWwindow* window) {
 		transferImageLayout(cmd, m_shadowCubeMapTextures[i].get(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 			0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, 6);
+
+		transferImageLayout(cmd,
+			m_rtReflectionTextures[i].get(),
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_GENERAL,
+			0,
+			VK_ACCESS_SHADER_WRITE_BIT,
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
+	}
+	VulkanUtil::endSingleTimeCommands(m_context.get(), cmd);
+
+	// create bottom level acceleration structure
+	for (auto& mesh : m_meshList) {
+		std::cout << "create blas" << std::endl;
+		auto blas = BottomLevelAS::createBottomLevelAS(m_context.get(), mesh.get());
+		m_blasList.push_back(std::move(blas));
 	}
 
+	// create top level acceleration structure
+	std::unordered_map<int32_t, std::vector<int32_t>> modelToMatrixIndices;
+	std::vector<ModelBuffer> modelBuffers;
+	createModelInstances(modelToMatrixIndices, modelBuffers);
 
-	VulkanUtil::endSingleTimeCommands(m_context.get(), cmd);
+	m_tlas.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		m_tlas[i] = TopLevelAS::createTopLevelAS(m_context.get(), m_blasList, m_modelList, modelToMatrixIndices, modelBuffers, m_scene->getObjects());
+	}
+
+	m_rtDescSets.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		m_rtDescSets[i] = DescriptorSet::createRayTracingDescriptorSet(m_context.get(), m_rayTracingLayout.get(), m_rtReflectionTextures[i].get(), m_tlas[i]->getHandle());
+	}
 }
 
 void Renderer::update(float deltaTime) {
@@ -218,9 +255,17 @@ void Renderer::render() {
 
 	// objectmap update
 
-	auto objectMap = createObjectMap();
+	//auto objectMap = createObjectMap();
+	std::unordered_map<int32_t, std::vector<int32_t>> modelToMatrixIndices;
+	std::vector<ModelBuffer> modelBuffers;
 
-	recordShadowMapCommandBuffer(objectMap);
+	createModelInstances(modelToMatrixIndices, modelBuffers);
+	if (!modelBuffers.empty()) {
+		m_modelBuffers[currentFrame]->updateStorageBuffer(&modelBuffers[0], sizeof(ModelBuffer) * modelBuffers.size());
+	}
+	updateObjectInstances(modelToMatrixIndices);
+
+	recordShadowMapCommandBuffer(modelToMatrixIndices);
 
 	for (int i = 0; i < 7; i++) {
 		transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_shadowMapTextures[currentFrame][i].get(),
@@ -236,7 +281,7 @@ void Renderer::render() {
 
 
 	// record command buffer
-	recordGbufferCommandBuffer(objectMap);
+	recordGbufferCommandBuffer(modelToMatrixIndices);
 
 
 	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].albedo.get(), 
@@ -255,6 +300,9 @@ void Renderer::render() {
 		, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+
+	recordRayTracingCommandBuffer();
 	
 	recordLightPassCommandBuffer();
 
@@ -393,6 +441,9 @@ void Renderer::recreateViewport(ImVec2 newExtent) {
 	m_gbufferFrameBuffers.clear();
 	m_gbufferAttachments.clear();
 
+	m_rtDescSets.clear();
+	m_rtReflectionTextures.clear();
+
 	m_gbufferAttachments.resize(MAX_FRAMES_IN_FLIGHT);
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		m_gbufferAttachments[i].albedo = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -422,6 +473,16 @@ void Renderer::recreateViewport(ImVec2 newExtent) {
 		m_outputFrameBuffers[i] = FrameBuffer::createOutputFrameBuffer(m_context.get(), m_lightPassRenderPass.get(), m_outputTextures[i].get(), m_extent);
 	}
 
+	m_rtReflectionTextures.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		m_rtReflectionTextures[i] = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+	}
+
+	m_rtDescSets.resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		m_rtDescSets[i] = DescriptorSet::createRayTracingDescriptorSet(m_context.get(), m_rayTracingLayout.get(), m_rtReflectionTextures[i].get(), m_tlas[i]->getHandle());
+	}
+	// resize layout qusrud godigka
 
 	m_guiRenderer->createViewPortDescriptorSet({ m_outputTextures[0].get(), m_outputTextures[1].get() });
 
@@ -551,8 +612,53 @@ std::unordered_map<int32_t, std::vector<int32_t>> Renderer::createObjectMap() {
 	return objectMap;
 }
 
+void Renderer::createModelInstances(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices, std::vector<ModelBuffer>& modelBuffers) {
+	auto& objects = m_scene->getObjects();
+	modelToMatrixIndices.clear();
+	modelBuffers.clear();
+	modelBuffers.resize(objects.size());
+	for (int32_t i = 0; i < objects.size(); i++) {
+		modelToMatrixIndices[objects[i].modelIndex].push_back(i);
 
-void Renderer::recordGbufferCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& objectMap) {
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::translate(model, objects[i].position);
+		model = glm::rotate(model, glm::radians(objects[i].rotation.x), glm::vec3(1, 0, 0));
+		model = glm::rotate(model, glm::radians(objects[i].rotation.y), glm::vec3(0, 1, 0));
+		model = glm::rotate(model, glm::radians(objects[i].rotation.z), glm::vec3(0, 0, 1));
+		model = glm::scale(model, objects[i].scale);
+		modelBuffers[i].model = model;
+	}
+}
+
+void Renderer::updateObjectInstances(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices) {
+	auto& objects = m_scene->getObjects();
+	std::vector<ObjectInstance> objectInstances;
+	objectInstances.reserve(objects.size() * 16);
+	int32_t index = 0;
+	for (const auto& [key, value] : modelToMatrixIndices) {
+		for (int32_t i = 0; i < m_modelList[key].mesh.size(); i++) {
+			int32_t startIndex = index;
+			for (int32_t j = 0; j < value.size(); j++) {
+				int32_t materialIndex;
+				if (objects[value[j]].overrideMaterialIndex.size() > i) {
+					materialIndex = objects[value[j]].overrideMaterialIndex[i];
+				}
+				else {
+					materialIndex = m_modelList[key].material[i];
+				}
+				objectInstances.push_back({ value[j], materialIndex });
+				index++;
+			}
+		}
+	}
+	if (!objectInstances.empty()) {
+		m_objectInstanceBuffers[currentFrame]->updateStorageBuffer(&objectInstances[0], sizeof(ObjectInstance) * objectInstances.size());
+	}
+}
+
+
+
+void Renderer::recordGbufferCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices) {
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = m_gbufferRenderPass->getRenderPass();
@@ -569,9 +675,9 @@ void Renderer::recordGbufferCommandBuffer(std::unordered_map<int32_t, std::vecto
 
 	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	renderPassInfo.pClearValues = clearValues.data();
-	
+
 	vkCmdBeginRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-	
+
 	vkCmdBindPipeline(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbufferPipeline->getPipeline());
 
 	VkViewport viewport{};
@@ -601,9 +707,9 @@ void Renderer::recordGbufferCommandBuffer(std::unordered_map<int32_t, std::vecto
 	vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbufferPipeline->getPipelineLayout(), 0, 1, &m_globlaDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
 	vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbufferPipeline->getPipelineLayout(), 1, 1, &m_objectMaterialDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
 	vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbufferPipeline->getPipelineLayout(), 2, 1, &m_bindlessDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
-	
+
 	int32_t index = 0;
-	for (const auto& [key, value] : objectMap) {
+	for (const auto& [key, value] : modelToMatrixIndices) {
 		for (int32_t i = 0; i < m_modelList[key].mesh.size(); i++) {
 			int32_t startIndex = index;
 			m_meshList[m_modelList[key].mesh[i]]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], value.size(), startIndex);
@@ -668,9 +774,9 @@ void Renderer::recordLightPassCommandBuffer() {
 	vkCmdEndRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame]);
 }
 
-void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& objectMap) {
+void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices) {
 	auto& lights = m_scene->getLights();
-	
+
 	int32_t directionalCount = 0;
 	int32_t spotCount = 0;
 	int32_t pointCount = 0;
@@ -739,7 +845,7 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 					&lightViewProj
 				);
 				int32_t index = 0;
-				for (const auto& [key, value] : objectMap) {
+				for (const auto& [key, value] : modelToMatrixIndices) {
 					for (int32_t i = 0; i < m_modelList[key].mesh.size(); i++) {
 						int32_t startIndex = index;
 						m_meshList[m_modelList[key].mesh[i]]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], value.size(), startIndex);
@@ -768,7 +874,7 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 			vkCmdBindPipeline(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipeline());
 			vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipelineLayout(), 0, 1, &m_objectMaterialDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
 			vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowMapPipeline->getPipelineLayout(), 1, 1, &m_bindlessDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
-			
+
 			vkCmdPushConstants(
 				m_commandBuffers->getCommandBuffers()[currentFrame],
 				m_shadowMapPipeline->getPipelineLayout(),
@@ -777,7 +883,7 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 				&lightViewProj
 			);
 			int32_t index = 0;
-			for (const auto& [key, value] : objectMap) {
+			for (const auto& [key, value] : modelToMatrixIndices) {
 				for (int32_t i = 0; i < m_modelList[key].mesh.size(); i++) {
 					int32_t startIndex = index;
 					m_meshList[m_modelList[key].mesh[i]]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], value.size(), startIndex);
@@ -842,6 +948,50 @@ void Renderer::transferImageLayout( VkCommandBuffer cmd, Texture* texture, VkIma
 		0, nullptr,
 		1, &barrier
 	);
+}
+
+
+void Renderer::recordRayTracingCommandBuffer() {
+	VkCommandBuffer cmd = m_commandBuffers->getCommandBuffers()[currentFrame];
+
+	transferImageLayout(cmd,
+		m_rtReflectionTextures[currentFrame].get(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_IMAGE_LAYOUT_GENERAL,
+		VK_ACCESS_SHADER_READ_BIT,
+		VK_ACCESS_SHADER_WRITE_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+		VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
+
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipeline->getPipeline());
+
+	VkDescriptorSet sets[] = {
+		m_globlaDescSets[currentFrame]->getDescriptorSet(),  // set=0 (camera)
+		m_rtDescSets[currentFrame]->getDescriptorSet()       // set=1 (outputImage + TLAS)
+	};
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+		m_rtPipeline->getPipelineLayout(), 0, 2, sets, 0, nullptr);
+
+
+	VkStridedDeviceAddressRegionKHR emptyRegion{};
+	g_vkCmdTraceRaysKHR(
+		cmd,
+		&m_rtPipeline->getRaygenRegion(),
+		&m_rtPipeline->getMissRegion(),
+		&m_rtPipeline->getHitRegion(),
+		&emptyRegion,
+		m_extent.width,
+		m_extent.height,
+		1);
+
+	transferImageLayout(cmd,
+		m_rtReflectionTextures[currentFrame].get(),
+		VK_IMAGE_LAYOUT_GENERAL,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_ACCESS_SHADER_WRITE_BIT,
+		VK_ACCESS_SHADER_READ_BIT,
+		VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 }
 
 
