@@ -98,7 +98,7 @@ void DescriptorSetLayout::initBindless(VulkanContext* context) {
 	materialBinding.binding = 1;
 	materialBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	materialBinding.descriptorCount = 1;
-	materialBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	materialBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 	materialBinding.pImmutableSamplers = nullptr;
 	bindings.push_back(materialBinding);
 
@@ -106,7 +106,7 @@ void DescriptorSetLayout::initBindless(VulkanContext* context) {
 	textureBinding.binding = 2;
 	textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	textureBinding.descriptorCount = MAX_TEXTURE_COUNT;
-	textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 	textureBinding.pImmutableSamplers = nullptr;
 	bindings.push_back(textureBinding);
 

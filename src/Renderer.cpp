@@ -150,7 +150,7 @@ void Renderer::init(GLFWwindow* window) {
 	m_gbufferPipeline = Pipeline::createGbufferPipeline(m_context.get(), m_gbufferRenderPass.get(), {m_globalLayout.get(), m_objectMaterialLayout.get(), m_bindlessLayout.get()});
 	m_lightPassPipeline = Pipeline::createLightPassPipeline(m_context.get(), m_lightPassRenderPass.get(), { m_globalLayout.get(), m_attachmentLayout.get(), m_shadowLayout.get() });
 	m_shadowMapPipeline = Pipeline::createShadowMapPipeline(m_context.get(), m_shadowMapRenderPass.get(), { m_objectMaterialLayout.get(), m_bindlessLayout.get() });
-	m_rtPipeline = RayTracingPipeline::createRayTracingPipeline(m_context.get(), { m_globalLayout.get(), m_rayTracingLayout.get()});
+	m_rtPipeline = RayTracingPipeline::createRayTracingPipeline(m_context.get(), { m_globalLayout.get(), m_rayTracingLayout.get(), m_bindlessLayout.get() });
 
 	printAllResources();
 
@@ -987,10 +987,11 @@ void Renderer::recordRayTracingCommandBuffer() {
 
 	VkDescriptorSet sets[] = {
 		m_globlaDescSets[currentFrame]->getDescriptorSet(),  // set=0 (camera)
-		m_rtDescSets[currentFrame]->getDescriptorSet()       // set=1 (outputImage + TLAS)
+		m_rtDescSets[currentFrame]->getDescriptorSet(),       // set=1 (outputImage + TLAS)
+		m_bindlessDescSets[currentFrame]->getDescriptorSet(), // set=2 (bindless)
 	};
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-		m_rtPipeline->getPipelineLayout(), 0, 2, sets, 0, nullptr);
+		m_rtPipeline->getPipelineLayout(), 0, 3, sets, 0, nullptr);
 
 
 	VkStridedDeviceAddressRegionKHR emptyRegion{};
