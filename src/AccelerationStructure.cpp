@@ -5,7 +5,7 @@ AccelerationStructure::~AccelerationStructure() {
 }
 
 void AccelerationStructure::cleanup() {
-	std::cout << "AccelerationStructure::cleanup" << std::endl;
+	//std::cout << "AccelerationStructure::cleanup" << std::endl;
 
 	if (m_as != VK_NULL_HANDLE) {
 		g_vkDestroyAccelerationStructureKHR(context->getDevice(), m_as, nullptr);

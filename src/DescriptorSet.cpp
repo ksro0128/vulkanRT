@@ -378,3 +378,20 @@ void DescriptorSet::initRayTracing(VulkanContext* context, DescriptorSetLayout* 
 
 	vkUpdateDescriptorSets(context->getDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
+
+void DescriptorSet::updateTLAS(VkAccelerationStructureKHR tlas) {
+	VkWriteDescriptorSetAccelerationStructureKHR accelWriteInfo{};
+	accelWriteInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+	accelWriteInfo.accelerationStructureCount = 1;
+	accelWriteInfo.pAccelerationStructures = &tlas;
+	VkWriteDescriptorSet accelWrite{};
+
+	accelWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	accelWrite.dstSet = m_descriptorSet;
+	accelWrite.dstBinding = 1;
+	accelWrite.dstArrayElement = 0;
+	accelWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+	accelWrite.descriptorCount = 1;
+	accelWrite.pNext = &accelWriteInfo;
+	vkUpdateDescriptorSets(context->getDevice(), 1, &accelWrite, 0, nullptr);
+}

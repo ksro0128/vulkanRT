@@ -154,10 +154,6 @@ void RayTracingPipeline::init(VulkanContext* context, std::vector<DescriptorSetL
 
 	vkGetPhysicalDeviceProperties2(context->getPhysicalDevice(), &props2);
 
-	/*const uint32_t handleSize = rtProps.shaderGroupHandleSize;
-	const uint32_t handleAlignment = rtProps.shaderGroupHandleAlignment;
-	const uint32_t handleSizeAligned = (handleSize + handleAlignment - 1) & ~(handleAlignment - 1);*/
-
 	const uint32_t handleSize = rtProps.shaderGroupHandleSize;
 	const uint32_t baseAlignment = rtProps.shaderGroupBaseAlignment;
 	const uint32_t handleSizeAligned = (handleSize + baseAlignment - 1) & ~(baseAlignment - 1);

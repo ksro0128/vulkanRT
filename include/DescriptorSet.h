@@ -52,6 +52,8 @@ public:
 
 	VkDescriptorSet& getDescriptorSet() { return m_descriptorSet; }
 
+	void updateTLAS(VkAccelerationStructureKHR tlas);
+
 	~DescriptorSet();
 
 private:

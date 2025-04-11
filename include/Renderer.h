@@ -128,6 +128,7 @@ private:
 	std::unordered_map<int32_t, std::vector<int32_t>> createObjectMap();
 	void createModelInstances(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices, std::vector<ModelBuffer>& modelBuffers);
 	void updateObjectInstances(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices);
+	void updateTLAS(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices, std::vector<ModelBuffer>& modelBuffers);
 
 	// record command buffer
 	void recordGbufferCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices);

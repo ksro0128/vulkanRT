@@ -185,11 +185,10 @@ void Renderer::init(GLFWwindow* window) {
 		transferImageLayout(cmd,
 			m_rtReflectionTextures[i].get(),
 			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_GENERAL,
-			0,
-			VK_ACCESS_SHADER_WRITE_BIT,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			0, VK_ACCESS_SHADER_READ_BIT,
 			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-			VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 	}
 	VulkanUtil::endSingleTimeCommands(m_context.get(), cmd);
 
@@ -214,6 +213,10 @@ void Renderer::init(GLFWwindow* window) {
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		m_rtDescSets[i] = DescriptorSet::createRayTracingDescriptorSet(m_context.get(), m_rayTracingLayout.get(), m_rtReflectionTextures[i].get(), m_tlas[i]->getHandle());
 	}
+
+
+	m_guiRenderer->createRayTracingDescriptorSet({ m_rtReflectionTextures[0].get(), m_rtReflectionTextures[1].get() });
+
 }
 
 void Renderer::update(float deltaTime) {
@@ -221,6 +224,7 @@ void Renderer::update(float deltaTime) {
 }
 
 void Renderer::render() {
+	//std::cout << "new frame" << std::endl;
 	vkWaitForFences(m_context->getDevice(), 1, &m_syncObjects->getInFlightFences()[currentFrame], VK_TRUE, UINT64_MAX);
 
 	uint32_t imageIndex;
@@ -264,6 +268,8 @@ void Renderer::render() {
 		m_modelBuffers[currentFrame]->updateStorageBuffer(&modelBuffers[0], sizeof(ModelBuffer) * modelBuffers.size());
 	}
 	updateObjectInstances(modelToMatrixIndices);
+
+	updateTLAS(modelToMatrixIndices, modelBuffers);
 
 	recordShadowMapCommandBuffer(modelToMatrixIndices);
 
@@ -482,9 +488,23 @@ void Renderer::recreateViewport(ImVec2 newExtent) {
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		m_rtDescSets[i] = DescriptorSet::createRayTracingDescriptorSet(m_context.get(), m_rayTracingLayout.get(), m_rtReflectionTextures[i].get(), m_tlas[i]->getHandle());
 	}
-	// resize layout qusrud godigka
+	
+
+	auto cmd = VulkanUtil::beginSingleTimeCommands(m_context.get());
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		transferImageLayout(cmd,
+			m_rtReflectionTextures[i].get(),
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			0, VK_ACCESS_SHADER_READ_BIT,
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+	}
+	VulkanUtil::endSingleTimeCommands(m_context.get(), cmd);
 
 	m_guiRenderer->createViewPortDescriptorSet({ m_outputTextures[0].get(), m_outputTextures[1].get() });
+	m_guiRenderer->createRayTracingDescriptorSet({ m_rtReflectionTextures[0].get(), m_rtReflectionTextures[1].get() });
+
 
 }
 
@@ -1099,4 +1119,10 @@ glm::mat4 Renderer::computePointLightMatrix(Light& light, uint32_t faceIndex) {
 	//proj[1][1] *= -1.0f;
 
 	return proj * view;
+}
+
+void Renderer::updateTLAS(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices, std::vector<ModelBuffer>& modelBuffers) {
+	m_tlas[currentFrame]->rebuild(m_blasList, m_modelList, modelToMatrixIndices, modelBuffers, m_scene->getObjects());
+
+	m_rtDescSets[currentFrame]->updateTLAS(m_tlas[currentFrame]->getHandle());
 }

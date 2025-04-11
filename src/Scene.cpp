@@ -29,6 +29,7 @@ void Scene::init(uint32_t maxModelIndex, uint32_t maxMaterialIndex, uint32_t max
 		m_lights.push_back(light);
 	}
 	// 0 - plane
+	// 1 - cube
 	// 2 - sphere
 
 	{
@@ -38,14 +39,14 @@ void Scene::init(uint32_t maxModelIndex, uint32_t maxMaterialIndex, uint32_t max
 		m_objects.push_back(obj);
 	}
 
-	{
+	/*{
 		Object obj;
 		obj.modelIndex = 0;
 		obj.position = glm::vec3(0.0f, -2.0f, 0.0f);
 		obj.rotation = glm::vec3(-90.0f, 0.0f, 0.0f);
 		obj.scale = glm::vec3(5.0f, 5.0f, 1.0f);
 		m_objects.push_back(obj);
-	}
+	}*/
 	
 
 }

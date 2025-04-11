@@ -129,12 +129,22 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 	 // Viewport
      ImGui::Begin("Viewport");
      m_viewportSize = ImGui::GetContentRegionAvail();
-     //ImGui::Image(m_viewPortDescriptorSet[currentFrame], m_viewportSize);
-	 ImGui::Image((ImTextureID)(uint64_t)m_viewPortDescriptorSet[currentFrame], m_viewportSize);
+
+	 if (m_viewPortIndex == 0) {
+		 ImGui::Image((ImTextureID)(uint64_t)m_viewPortDescriptorSet[currentFrame], m_viewportSize);
+	 }
+	 else if (m_viewPortIndex == 1) {
+		 ImGui::Image((ImTextureID)(uint64_t)m_rayTracingDescriptorSet[currentFrame], m_viewportSize);
+	 }
      ImGui::End();
 	 
 	 // Scene
 	 ImGui::Begin("Scene");
+
+
+	 const char* items[] = { "Viewport", "Ray Tracing"};
+	 ImGui::Combo("Select Viewport", &m_viewPortIndex, items, IM_ARRAYSIZE(items));
+
 
 	 if (ImGui::Button("Add Light")) {
 		 Light newLight{};
@@ -271,6 +281,12 @@ void GuiRenderer::createViewPortDescriptorSet(std::array<Texture*, 2> textures) 
     m_viewPortDescriptorSet.resize(textures.size());
 	m_viewPortDescriptorSet[0] = ImGui_ImplVulkan_AddTexture(textures[0]->getSampler(), textures[0]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	m_viewPortDescriptorSet[1] = ImGui_ImplVulkan_AddTexture(textures[1]->getSampler(), textures[1]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
+void GuiRenderer::createRayTracingDescriptorSet(std::array<Texture*, 2> textures) {
+	m_rayTracingDescriptorSet.resize(textures.size());
+	m_rayTracingDescriptorSet[0] = ImGui_ImplVulkan_AddTexture(textures[0]->getSampler(), textures[0]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	m_rayTracingDescriptorSet[1] = ImGui_ImplVulkan_AddTexture(textures[1]->getSampler(), textures[1]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void GuiRenderer::setDarkThemeColors()
