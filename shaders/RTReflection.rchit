@@ -28,7 +28,7 @@ void main() {
     int materialIndex = gl_InstanceCustomIndexEXT;
     int albedoTexIndex = materials[materialIndex].albedoTexIndex;
     if (albedoTexIndex == -1) {
-        payload = vec4(1.0, 0.0, 0.0, 1.0); // no texture
+        payload = materials[materialIndex].baseColor;
         return;
     }
     else {

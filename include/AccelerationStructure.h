@@ -39,6 +39,7 @@ public:
 	static std::unique_ptr<TopLevelAS> createTopLevelAS(VulkanContext* context, std::vector<std::unique_ptr<BottomLevelAS>>& blasList,
 		std::vector<Model>& modelList, std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices,
 		std::vector<ModelBuffer>& modelBuffers, std::vector<Object>& objects);
+	static std::unique_ptr<TopLevelAS> createEmptyTopLevelAS(VulkanContext* context);
 	void rebuild(std::vector<std::unique_ptr<BottomLevelAS>>& blasList,
 		std::vector<Model>& modelList, std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices,
 		std::vector<ModelBuffer>& modelBuffers, std::vector<Object>& objects);
@@ -46,4 +47,5 @@ private:
 	void initTLAS(VulkanContext* context, std::vector<std::unique_ptr<BottomLevelAS>>& blasList,
 		std::vector<Model>& modelList, std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices,
 		std::vector<ModelBuffer>& modelBuffers, std::vector<Object>& objects);
+	void initEmptyTLAS(VulkanContext* context);
 };

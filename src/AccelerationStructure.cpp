@@ -272,3 +272,70 @@ void TopLevelAS::rebuild(std::vector<std::unique_ptr<BottomLevelAS>>& blasList,
 	cleanup();
 	initTLAS(context, blasList, modelList, modelToMatrixIndices, modelBuffers, objects);
 }
+
+std::unique_ptr<TopLevelAS> TopLevelAS::createEmptyTopLevelAS(VulkanContext* context) {
+	std::unique_ptr<TopLevelAS> as = std::unique_ptr<TopLevelAS>(new TopLevelAS());
+	as->initEmptyTLAS(context);
+	return as;
+}
+
+void TopLevelAS::initEmptyTLAS(VulkanContext* context) {
+	this->context = context;
+
+	// 빈 인스턴스 데이터 설정 (주소는 0)
+	VkAccelerationStructureGeometryKHR geometry{};
+	geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+	geometry.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+	geometry.geometry.instances.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+	geometry.geometry.instances.arrayOfPointers = VK_FALSE;
+	geometry.geometry.instances.data.deviceAddress = 0;
+	geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+
+	// 빌드 정보
+	VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
+	buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+	buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+	buildInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+	buildInfo.geometryCount = 1;
+	buildInfo.pGeometries = &geometry;
+	buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+
+	uint32_t primitiveCount = 0;
+
+	VkAccelerationStructureBuildSizesInfoKHR sizeInfo{};
+	sizeInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
+
+	g_vkGetAccelerationStructureBuildSizesKHR(
+		context->getDevice(),
+		VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+		&buildInfo,
+		&primitiveCount,
+		&sizeInfo
+	);
+
+	// 버퍼 생성
+	VulkanUtil::createBuffer(
+		context,
+		sizeInfo.accelerationStructureSize,
+		VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		m_buffer,
+		m_memory
+	);
+
+	VkAccelerationStructureCreateInfoKHR createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+	createInfo.buffer = m_buffer;
+	createInfo.size = sizeInfo.accelerationStructureSize;
+	createInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+
+	if (g_vkCreateAccelerationStructureKHR(context->getDevice(), &createInfo, nullptr, &m_as) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create empty TLAS");
+	}
+
+	VkAccelerationStructureDeviceAddressInfoKHR addrInfo{};
+	addrInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
+	addrInfo.accelerationStructure = m_as;
+
+	m_deviceAddress = g_vkGetAccelerationStructureDeviceAddressKHR(context->getDevice(), &addrInfo);
+}

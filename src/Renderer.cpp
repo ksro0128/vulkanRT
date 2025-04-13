@@ -28,19 +28,19 @@ void Renderer::init(GLFWwindow* window) {
 
 	createDefaultModels();
 
-	//loadModel("./assets/materials/aerial_grass_rock_1k.gltf/aerial_grass_rock_1k.gltf");
-	//loadModel("./assets/materials/aerial_rocks_02_1k.gltf/aerial_rocks_02_1k.gltf");
-	//loadModel("./assets/materials/asphalt_02_1k.gltf/asphalt_02_1k.gltf");
-	//loadModel("./assets/materials/beige_wall_001_1k.gltf/beige_wall_001_1k.gltf");
-	//loadModel("./assets/materials/brick_wall_13_4k.gltf/brick_wall_13_4k.gltf");
-	//loadModel("./assets/materials/brown_mud_leaves_01_1k.gltf/brown_mud_leaves_01_1k.gltf");
-	//loadModel("./assets/materials/plywood_1k.gltf/plywood_1k.gltf");
-	//loadModel("./assets/materials/fabric_pattern_07_1k.gltf/fabric_pattern_07_1k.gltf");
-	//loadModel("./assets/models/lion_head_1k.gltf/lion_head_1k.gltf");
-	//loadModel("./assets/models/Camera_01_1k.gltf/Camera_01_1k.gltf");
-
+	// loadModel("./assets/materials/aerial_grass_rock_1k.gltf/aerial_grass_rock_1k.gltf");
+	// loadModel("./assets/materials/aerial_rocks_02_1k.gltf/aerial_rocks_02_1k.gltf");
+	// loadModel("./assets/materials/asphalt_02_1k.gltf/asphalt_02_1k.gltf");
+	// loadModel("./assets/materials/beige_wall_001_1k.gltf/beige_wall_001_1k.gltf");
+	// loadModel("./assets/materials/brick_wall_13_4k.gltf/brick_wall_13_4k.gltf");
+	// loadModel("./assets/materials/brown_mud_leaves_01_1k.gltf/brown_mud_leaves_01_1k.gltf");
+	// loadModel("./assets/materials/plywood_1k.gltf/plywood_1k.gltf");
+	// loadModel("./assets/materials/fabric_pattern_07_1k.gltf/fabric_pattern_07_1k.gltf");
+	// loadModel("./assets/models/lion_head_1k.gltf/lion_head_1k.gltf");
+	// loadModel("./assets/models/Camera_01_1k.gltf/Camera_01_1k.gltf");
+	loadModel("./assets/main1_sponza/NewSponza_Main_glTF_003.gltf");
 	//loadModel("./main1_sponza/NewSponza_Main_glTF_003.gltf");
-	//loadModel("./pkg_a_curtains/NewSponza_Curtains_glTF.gltf");
+	// loadModel("./pkg_a_curtains/NewSponza_Curtains_glTF.gltf");
 	//loadModel("./assets/models/knight.glb");
 	//loadModel("nodecal.glb");
 
@@ -157,7 +157,8 @@ void Renderer::init(GLFWwindow* window) {
 
 	// gui renderer
 	m_guiRenderer = GuiRenderer::createGuiRenderer(m_context.get(), window, m_imguiRenderPass.get(), m_swapChain.get());
-	m_guiRenderer->createViewPortDescriptorSet({m_outputTextures[0].get(), m_outputTextures[1].get()});
+	m_guiRenderer->setRTEnabled = [this](bool enabled) { m_rtEnabled = enabled; };
+	m_guiRenderer->getRTEnabled = [this]() { return m_rtEnabled; };
 
 
 	m_scene = Scene::createScene(m_modelList.size(), m_materialList.size(), m_textureList.size());
@@ -209,21 +210,26 @@ void Renderer::init(GLFWwindow* window) {
 		m_tlas[i] = TopLevelAS::createTopLevelAS(m_context.get(), m_blasList, m_modelList, modelToMatrixIndices, modelBuffers, m_scene->getObjects());
 	}
 
+	m_emptyTLAS = TopLevelAS::createEmptyTopLevelAS(m_context.get());
+
 	m_rtDescSets.resize(MAX_FRAMES_IN_FLIGHT);
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		m_rtDescSets[i] = DescriptorSet::createRayTracingDescriptorSet(m_context.get(), m_rayTracingLayout.get(), m_rtReflectionTextures[i].get(), m_tlas[i]->getHandle());
 	}
 
-
+	m_guiRenderer->createViewPortDescriptorSet({m_outputTextures[0].get(), m_outputTextures[1].get()});
 	m_guiRenderer->createRayTracingDescriptorSet({ m_rtReflectionTextures[0].get(), m_rtReflectionTextures[1].get() });
-
+	m_guiRenderer->createAlbedoDescriptorSet({m_gbufferAttachments[0].albedo.get(), m_gbufferAttachments[1].albedo.get()});
+	m_guiRenderer->createPositionDescriptorSet({m_gbufferAttachments[0].position.get(), m_gbufferAttachments[1].position.get()});
+	m_guiRenderer->createNormalDescriptorSet({m_gbufferAttachments[0].normal.get(), m_gbufferAttachments[1].normal.get()});
+	m_guiRenderer->createPbrDescriptorSet({m_gbufferAttachments[0].pbr.get(), m_gbufferAttachments[1].pbr.get()});
 }
 
 void Renderer::update(float deltaTime) {
 	updateCamera(deltaTime);
 }
 
-void Renderer::render() {
+void Renderer::render(float deltaTime) {
 	//std::cout << "new frame" << std::endl;
 	vkWaitForFences(m_context->getDevice(), 1, &m_syncObjects->getInFlightFences()[currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -308,26 +314,13 @@ void Renderer::render() {
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
 
-	recordRayTracingCommandBuffer();
+	if (m_rtEnabled) {
+		recordRayTracingCommandBuffer();
+	}
 	
 	recordLightPassCommandBuffer();
 
-	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].albedo.get(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].normal.get(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].position.get(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].pbr.get(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+	
 
 	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_outputTextures[currentFrame].get(),
 		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -347,7 +340,24 @@ void Renderer::render() {
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, 6);
 	
 	
-	recordImGuiCommandBuffer(imageIndex);
+	recordImGuiCommandBuffer(imageIndex, deltaTime);
+
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].albedo.get(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].normal.get(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].position.get(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].pbr.get(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
 	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_outputTextures[currentFrame].get(),
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -504,6 +514,10 @@ void Renderer::recreateViewport(ImVec2 newExtent) {
 
 	m_guiRenderer->createViewPortDescriptorSet({ m_outputTextures[0].get(), m_outputTextures[1].get() });
 	m_guiRenderer->createRayTracingDescriptorSet({ m_rtReflectionTextures[0].get(), m_rtReflectionTextures[1].get() });
+	m_guiRenderer->createAlbedoDescriptorSet({m_gbufferAttachments[0].albedo.get(), m_gbufferAttachments[1].albedo.get()});
+	m_guiRenderer->createPositionDescriptorSet({m_gbufferAttachments[0].position.get(), m_gbufferAttachments[1].position.get()});
+	m_guiRenderer->createNormalDescriptorSet({m_gbufferAttachments[0].normal.get(), m_gbufferAttachments[1].normal.get()});
+	m_guiRenderer->createPbrDescriptorSet({m_gbufferAttachments[0].pbr.get(), m_gbufferAttachments[1].pbr.get()});
 
 
 }
@@ -919,7 +933,7 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 	m_lightMatrixBuffers[currentFrame]->updateUniformBuffer(&lightMatrices[0], sizeof(LightMatrix) * lightMatrices.size());
 }
 
-void Renderer::recordImGuiCommandBuffer(uint32_t imageIndex) {
+void Renderer::recordImGuiCommandBuffer(uint32_t imageIndex, float deltaTime) {
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = m_imguiRenderPass->getRenderPass();
@@ -935,7 +949,7 @@ void Renderer::recordImGuiCommandBuffer(uint32_t imageIndex) {
 
 	vkCmdBeginRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 	m_guiRenderer->newFrame();
-	m_guiRenderer->render(currentFrame, m_commandBuffers->getCommandBuffers()[currentFrame], m_scene.get(), m_modelList);
+	m_guiRenderer->render(currentFrame, m_commandBuffers->getCommandBuffers()[currentFrame], m_scene.get(), m_modelList, deltaTime);
 	vkCmdEndRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame]);
 }
 
@@ -1123,7 +1137,12 @@ glm::mat4 Renderer::computePointLightMatrix(Light& light, uint32_t faceIndex) {
 }
 
 void Renderer::updateTLAS(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices, std::vector<ModelBuffer>& modelBuffers) {
-	m_tlas[currentFrame]->rebuild(m_blasList, m_modelList, modelToMatrixIndices, modelBuffers, m_scene->getObjects());
 
-	m_rtDescSets[currentFrame]->updateTLAS(m_tlas[currentFrame]->getHandle());
+	if (modelToMatrixIndices.size() > 0) {
+		m_tlas[currentFrame]->rebuild(m_blasList, m_modelList, modelToMatrixIndices, modelBuffers, m_scene->getObjects());
+		m_rtDescSets[currentFrame]->updateTLAS(m_tlas[currentFrame]->getHandle());
+	}
+	else {
+		m_rtDescSets[currentFrame]->updateTLAS(m_emptyTLAS->getHandle());
+	}
 }

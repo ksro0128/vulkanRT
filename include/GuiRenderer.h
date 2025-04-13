@@ -15,18 +15,38 @@ public:
     ~GuiRenderer();
 
     void newFrame();
-    void render(uint32_t currentFrame, VkCommandBuffer cmd, Scene* scene, std::vector<Model>& modelList);
+    void render(uint32_t currentFrame, VkCommandBuffer cmd, Scene* scene, std::vector<Model>& modelList, float deltaTime);
     void createViewPortDescriptorSet(std::array<Texture*, 2> textures);
     void createRayTracingDescriptorSet(std::array<Texture*, 2> textures);
+	void createAlbedoDescriptorSet(std::array<Texture*, 2> textures);
+	void createPositionDescriptorSet(std::array<Texture*, 2> textures);
+	void createNormalDescriptorSet(std::array<Texture*, 2> textures);
+	void createPbrDescriptorSet(std::array<Texture*, 2> textures);
     ImVec2 getViewportSize() const { return m_viewportSize; }
+	bool isBenchmarkRunning() const { return m_benchmarkRunning; }
+
+	std::function<bool()> getRTEnabled;
+	std::function<void(bool)> setRTEnabled;
 
 private:
     VulkanContext* context;
     VkDescriptorPool m_descriptorPool;
     int32_t m_viewPortIndex = 0;
+	int32_t m_benchmarkFrameCount = 0;
+	float m_benchmarkTime = 0.0f;
+	float m_benchmarkScore = 0.0f;
+
+	bool m_benchmarkRunning = false;
+	float m_fpsMax = 0.0f;
+	float m_fpsMin = FLT_MAX;
+	float m_fpsSum = 0.0f;
 
     std::vector<VkDescriptorSet> m_viewPortDescriptorSet;
 	std::vector<VkDescriptorSet> m_rayTracingDescriptorSet;
+	std::vector<VkDescriptorSet> m_albedoDescriptorSet;
+	std::vector<VkDescriptorSet> m_positionDescriptorSet;
+	std::vector<VkDescriptorSet> m_normalDescriptorSet;
+	std::vector<VkDescriptorSet> m_pbrDescriptorSet;
     bool m_dockLayoutBuilt;
     ImVec2 m_viewportSize;
 

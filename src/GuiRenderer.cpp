@@ -87,7 +87,7 @@ void GuiRenderer::createDescriptorPool() {
  	ImGui::NewFrame();
  }
 
-void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scene, std::vector<Model>& modelList) {
+void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scene, std::vector<Model>& modelList, float deltaTime) {
      static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 
      ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
@@ -115,8 +115,10 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 
          ImGuiID dock_main_id = dockspace_id;
          ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.2f, nullptr, &dock_main_id);
+		 ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.25f, nullptr, &dock_main_id);
          ImGui::DockBuilderDockWindow("Scene", dock_id_left);
          ImGui::DockBuilderDockWindow("Viewport", dock_main_id);
+		 ImGui::DockBuilderDockWindow("Profiler", dock_id_right);
 
          ImGui::DockBuilderFinish(dockspace_id);
          m_dockLayoutBuilt = true;
@@ -136,17 +138,141 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 	 else if (m_viewPortIndex == 1) {
 		 ImGui::Image((ImTextureID)(uint64_t)m_rayTracingDescriptorSet[currentFrame], m_viewportSize);
 	 }
-     ImGui::End();
+	 else if (m_viewPortIndex == 2) {
+		 ImGui::Image((ImTextureID)(uint64_t)m_albedoDescriptorSet[currentFrame], m_viewportSize);
+	 }
+	 else if (m_viewPortIndex == 3) {
+		 ImGui::Image((ImTextureID)(uint64_t)m_positionDescriptorSet[currentFrame], m_viewportSize);
+	 }
+	 else if (m_viewPortIndex == 4) {
+		 ImGui::Image((ImTextureID)(uint64_t)m_normalDescriptorSet[currentFrame], m_viewportSize);
+	 }
+	 else if (m_viewPortIndex == 5) {
+		 ImGui::Image((ImTextureID)(uint64_t)m_pbrDescriptorSet[currentFrame], m_viewportSize);
+	 }
 	 
+     ImGui::End();
+
+	// Profiler 창
+	ImGui::Begin("Profiler");
+
+	bool disableUI = m_benchmarkRunning;
+	if (disableUI) { ImGui::BeginDisabled(true); }
+
+	bool rtEnabled = getRTEnabled();
+	if (ImGui::Checkbox("Enable Ray Tracing", &rtEnabled)) {
+		setRTEnabled(rtEnabled);
+	}
+
+	ImGuiIO& io = ImGui::GetIO();
+	ImGui::Text("FPS: %.1f", io.Framerate);
+	ImGui::Text("Viewport Size: %.0f x %.0f", m_viewportSize.x, m_viewportSize.y);
+
+
+	const char* items[] = { "Viewport", "Ray Tracing", "Albedo", "Position", "Normal", "PBR" };
+	int itemCount = IM_ARRAYSIZE(items);
+
+	ImGui::Text("Select Viewport");
+
+	ImGui::BeginChild("ViewportSelectorBox", ImVec2(0, itemCount * 22 + 10), true, ImGuiWindowFlags_NoScrollbar);
+	for (int i = 0; i < itemCount; i++) {
+		ImGui::PushID(i);
+
+		bool is_selected = (m_viewPortIndex == i);
+		bool is_rt_option = (i == 1);
+		bool rt_enabled = getRTEnabled();
+		bool disabled = (is_rt_option && !rt_enabled);
+
+		if (is_selected) {
+			ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.3f, 0.6f, 1.0f, 0.4f));
+			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.4f, 0.7f, 1.0f, 0.5f));
+		}
+
+		if (disabled)
+			ImGui::BeginDisabled(true);
+
+		if (ImGui::Selectable(items[i], is_selected)) {
+			if (!disabled)
+				m_viewPortIndex = i;
+		}
+
+		if (disabled)
+			ImGui::EndDisabled();
+
+		if (is_selected)
+			ImGui::PopStyleColor(2);
+
+		ImGui::PopID();
+	}
+	ImGui::EndChild();
+
+	if (!getRTEnabled() && m_viewPortIndex == 1) {
+		m_viewPortIndex = 0;
+	}
+
+
+	if (!m_benchmarkRunning && ImGui::Button("Start Benchmark")) {
+		m_benchmarkRunning = true;
+		m_benchmarkTime = 0.0f;
+		m_benchmarkFrameCount = 0;
+		m_fpsSum = 0.0f;
+		m_fpsMax = 0.0f;
+		m_fpsMin = FLT_MAX;
+	}
+
+	if (disableUI) { ImGui::EndDisabled(); }
+
+	if (m_benchmarkRunning) {
+		m_benchmarkTime += deltaTime;
+		m_benchmarkFrameCount++;
+
+		float fpsNow = 1.0f / deltaTime;
+		m_fpsSum += fpsNow;
+
+		if (fpsNow > m_fpsMax) m_fpsMax = fpsNow;
+		if (fpsNow < m_fpsMin) m_fpsMin = fpsNow;
+
+		ImGui::Spacing();
+		ImGui::TextColored(ImVec4(0.8f, 0.8f, 1.0f, 1.0f), "Benchmark Running...");
+		ImGui::Text("Elapsed Time: %.2f / 10.00 sec", m_benchmarkTime);
+		ImGui::Text("Current FPS: %.2f", fpsNow);
+
+		if (m_benchmarkTime >= 10.0f) {
+			m_benchmarkRunning = false;
+		}
+	}
+
+	if (!m_benchmarkRunning && m_benchmarkFrameCount > 0) {
+		ImGui::Spacing();
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.15f, 0.25f, 0.8f));
+		ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+
+		ImGui::BeginChild("BenchmarkResult", ImVec2(0, 100), true);
+
+		ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "Benchmark Results");
+		ImGui::Spacing();
+
+		float avgFps = m_fpsSum / m_benchmarkFrameCount;
+
+		ImGui::Text("Total Frames: %d", m_benchmarkFrameCount);
+		ImGui::Text("Avg FPS:      %.2f", avgFps);
+		ImGui::Text("Min FPS:      %.2f", m_fpsMin);
+		ImGui::Text("Max FPS:      %.2f", m_fpsMax);
+
+		ImGui::EndChild();
+
+		ImGui::PopStyleVar();
+		ImGui::PopStyleColor();
+	}
+
+
+
+	ImGui::End();
 	 // Scene
-	 ImGui::Begin("Scene");
+	ImGui::Begin("Scene");
+	if (disableUI) { ImGui::BeginDisabled(true); }
 
-
-	 const char* items[] = { "Viewport", "Ray Tracing"};
-	 ImGui::Combo("Select Viewport", &m_viewPortIndex, items, IM_ARRAYSIZE(items));
-
-
-	 if (ImGui::Button("Add Light")) {
+	if (ImGui::Button("Add Light")) {
 		 Light newLight{};
 		 newLight.type = 0; // Directional
 		 newLight.direction = glm::vec3(0.0f, -1.0f, 0.0f);
@@ -271,6 +397,8 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 		ImGui::PopID();
 	}
 
+	if (disableUI) { ImGui::EndDisabled(); }
+
      ImGui::End();
 
      ImGui::Render();
@@ -288,6 +416,31 @@ void GuiRenderer::createRayTracingDescriptorSet(std::array<Texture*, 2> textures
 	m_rayTracingDescriptorSet[0] = ImGui_ImplVulkan_AddTexture(textures[0]->getSampler(), textures[0]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	m_rayTracingDescriptorSet[1] = ImGui_ImplVulkan_AddTexture(textures[1]->getSampler(), textures[1]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
+
+void GuiRenderer::createAlbedoDescriptorSet(std::array<Texture*, 2> textures) {
+	m_albedoDescriptorSet.resize(textures.size());
+	m_albedoDescriptorSet[0] = ImGui_ImplVulkan_AddTexture(textures[0]->getSampler(), textures[0]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	m_albedoDescriptorSet[1] = ImGui_ImplVulkan_AddTexture(textures[1]->getSampler(), textures[1]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
+void GuiRenderer::createPositionDescriptorSet(std::array<Texture*, 2> textures) {
+	m_positionDescriptorSet.resize(textures.size());
+	m_positionDescriptorSet[0] = ImGui_ImplVulkan_AddTexture(textures[0]->getSampler(), textures[0]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	m_positionDescriptorSet[1] = ImGui_ImplVulkan_AddTexture(textures[1]->getSampler(), textures[1]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
+void GuiRenderer::createNormalDescriptorSet(std::array<Texture*, 2> textures) {
+	m_normalDescriptorSet.resize(textures.size());
+	m_normalDescriptorSet[0] = ImGui_ImplVulkan_AddTexture(textures[0]->getSampler(), textures[0]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	m_normalDescriptorSet[1] = ImGui_ImplVulkan_AddTexture(textures[1]->getSampler(), textures[1]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
+void GuiRenderer::createPbrDescriptorSet(std::array<Texture*, 2> textures) {
+	m_pbrDescriptorSet.resize(textures.size());
+	m_pbrDescriptorSet[0] = ImGui_ImplVulkan_AddTexture(textures[0]->getSampler(), textures[0]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	m_pbrDescriptorSet[1] = ImGui_ImplVulkan_AddTexture(textures[1]->getSampler(), textures[1]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
 
 void GuiRenderer::setDarkThemeColors()
 {

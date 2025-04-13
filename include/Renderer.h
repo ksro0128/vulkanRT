@@ -27,7 +27,8 @@ public:
 	~Renderer();
 
 	void update(float deltaTime);
-	void render();
+	void render(float deltaTime);
+	bool isBenchmarkRunning() const { return m_guiRenderer->isBenchmarkRunning(); }
 private:
 	GLFWwindow* window;
 	std::unique_ptr<VulkanContext> m_context;
@@ -37,6 +38,9 @@ private:
 	VkExtent2D m_extent;
 	uint32_t currentFrame = 0;
 
+	// pipeline switch
+	bool m_rtEnabled = false;
+
 	// resources list
 	std::vector<std::unique_ptr<Mesh>> m_meshList;
 	std::vector<std::unique_ptr<Texture>> m_textureList;
@@ -45,6 +49,8 @@ private:
 	std::unordered_map<std::string, int32_t> m_texturePathMap;
 	std::vector<std::unique_ptr<BottomLevelAS>> m_blasList;
 	std::vector<std::unique_ptr<TopLevelAS>> m_tlas;
+	std::unique_ptr<TopLevelAS> m_emptyTLAS;
+	
 
 
 	// descriptorset layout
@@ -133,7 +139,7 @@ private:
 	// record command buffer
 	void recordGbufferCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices);
 	void recordLightPassCommandBuffer();
-	void recordImGuiCommandBuffer(uint32_t imageIndex);
+	void recordImGuiCommandBuffer(uint32_t imageIndex, float deltaTime);
 	void recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices);
 	void recordRayTracingCommandBuffer();
 

@@ -78,35 +78,35 @@ void Mesh::drawInstance(VkCommandBuffer commandBuffer, uint32_t instanceCount, u
 
 std::unique_ptr<Mesh> Mesh::createBoxMesh(VulkanContext* context) {
 	std::vector<Vertex> vertices = {
-		Vertex{glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(0.0f, 0.0f)},
-		Vertex{glm::vec3(0.5f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(1.0f, 0.0f)},
-		Vertex{glm::vec3(0.5f, 0.5f, -0.5f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(1.0f, 1.0f)},
-		Vertex{glm::vec3(-0.5f, 0.5f, -0.5f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec2(0.0f, 1.0f)},
+		Vertex{glm::vec3(-0.5f, -0.5f, -0.5f), 0.0f, glm::vec3(0.0f, 0.0f, -1.0f), 0.0f, glm::vec2(0.0f, 0.0f)},
+		Vertex{glm::vec3(0.5f, -0.5f, -0.5f),0.0f, glm::vec3(0.0f, 0.0f, -1.0f), 0.0f, glm::vec2(1.0f, 0.0f)},
+		Vertex{glm::vec3(0.5f, 0.5f, -0.5f), 0.0f, glm::vec3(0.0f, 0.0f, -1.0f), 0.0f, glm::vec2(1.0f, 1.0f)},
+		Vertex{glm::vec3(-0.5f, 0.5f, -0.5f), 0.0f, glm::vec3(0.0f, 0.0f, -1.0f), 0.0f, glm::vec2(0.0f, 1.0f)},
 
-		Vertex{glm::vec3(-0.5f, -0.5f, 0.5f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
-		Vertex{glm::vec3(0.5f, -0.5f, 0.5f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f)},
-		Vertex{glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)},
-		Vertex{glm::vec3(-0.5f, 0.5f, 0.5f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)},
+		Vertex{glm::vec3(-0.5f, -0.5f, 0.5f), 0.0f, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec2(0.0f, 0.0f)},
+		Vertex{glm::vec3(0.5f, -0.5f, 0.5f), 0.0f, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec2(1.0f, 0.0f)},
+		Vertex{glm::vec3(0.5f, 0.5f, 0.5f), 0.0f, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec2(1.0f, 1.0f)},
+		Vertex{glm::vec3(-0.5f, 0.5f, 0.5f), 0.0f, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec2(0.0f, 1.0f)},
 
-		Vertex{glm::vec3(-0.5f, 0.5f, 0.5f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f)},
-		Vertex{glm::vec3(-0.5f, 0.5f, -0.5f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f)},
-		Vertex{glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f)},
-		Vertex{glm::vec3(-0.5f, -0.5f, 0.5f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)},
+		Vertex{glm::vec3(-0.5f, 0.5f, 0.5f), 0.0f, glm::vec3(-1.0f, 0.0f, 0.0f), 0.0f, glm::vec2(1.0f, 0.0f)},
+		Vertex{glm::vec3(-0.5f, 0.5f, -0.5f), 0.0f, glm::vec3(-1.0f, 0.0f, 0.0f), 0.0f, glm::vec2(1.0f, 1.0f)},
+		Vertex{glm::vec3(-0.5f, -0.5f, -0.5f), 0.0f, glm::vec3(-1.0f, 0.0f, 0.0f), 0.0f, glm::vec2(0.0f, 1.0f)},
+		Vertex{glm::vec3(-0.5f, -0.5f, 0.5f), 0.0f, glm::vec3(-1.0f, 0.0f, 0.0f), 0.0f, glm::vec2(0.0f, 0.0f)},
 
-		Vertex{glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 0.0f)},
-		Vertex{glm::vec3(0.5f, 0.5f, -0.5f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f)},
-		Vertex{glm::vec3(0.5f, -0.5f, -0.5f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 1.0f)},
-		Vertex{glm::vec3(0.5f, -0.5f, 0.5f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f)},
+		Vertex{glm::vec3(0.5f, 0.5f, 0.5f), 0.0f, glm::vec3(1.0f, 0.0f, 0.0f), 0.0f, glm::vec2(1.0f, 0.0f)},
+		Vertex{glm::vec3(0.5f, 0.5f, -0.5f), 0.0f, glm::vec3(1.0f, 0.0f, 0.0f), 0.0f, glm::vec2(1.0f, 1.0f)},
+		Vertex{glm::vec3(0.5f, -0.5f, -0.5f), 0.0f, glm::vec3(1.0f, 0.0f, 0.0f), 0.0f, glm::vec2(0.0f, 1.0f)},
+		Vertex{glm::vec3(0.5f, -0.5f, 0.5f), 0.0f, glm::vec3(1.0f, 0.0f, 0.0f), 0.0f, glm::vec2(0.0f, 0.0f)},
 
-		Vertex{glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(0.0f, 1.0f)},
-		Vertex{glm::vec3(0.5f, -0.5f, -0.5f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(1.0f, 1.0f)},
-		Vertex{glm::vec3(0.5f, -0.5f, 0.5f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(1.0f, 0.0f)},
-		Vertex{glm::vec3(-0.5f, -0.5f, 0.5f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(0.0f, 0.0f)},
+		Vertex{glm::vec3(-0.5f, -0.5f, -0.5f), 0.0f, glm::vec3(0.0f, -1.0f, 0.0f), 0.0f, glm::vec2(0.0f, 1.0f)},
+		Vertex{glm::vec3(0.5f, -0.5f, -0.5f), 0.0f, glm::vec3(0.0f, -1.0f, 0.0f), 0.0f, glm::vec2(1.0f, 1.0f)},
+		Vertex{glm::vec3(0.5f, -0.5f, 0.5f), 0.0f, glm::vec3(0.0f, -1.0f, 0.0f), 0.0f, glm::vec2(1.0f, 0.0f)},
+		Vertex{glm::vec3(-0.5f, -0.5f, 0.5f), 0.0f, glm::vec3(0.0f, -1.0f, 0.0f), 0.0f, glm::vec2(0.0f, 0.0f)},
 
-		Vertex{glm::vec3(-0.5f, 0.5f, -0.5f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(0.0f, 1.0f)},
-		Vertex{glm::vec3(0.5f, 0.5f, -0.5f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(1.0f, 1.0f)},
-		Vertex{glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(1.0f, 0.0f)},
-		Vertex{glm::vec3(-0.5f, 0.5f, 0.5f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(0.0f, 0.0f)},
+		Vertex{glm::vec3(-0.5f, 0.5f, -0.5f), 0.0f, glm::vec3(0.0f, 1.0f, 0.0f), 0.0f, glm::vec2(0.0f, 1.0f)},
+		Vertex{glm::vec3(0.5f, 0.5f, -0.5f), 0.0f, glm::vec3(0.0f, 1.0f, 0.0f), 0.0f, glm::vec2(1.0f, 1.0f)},
+		Vertex{glm::vec3(0.5f, 0.5f, 0.5f), 0.0f, glm::vec3(0.0f, 1.0f, 0.0f), 0.0f, glm::vec2(1.0f, 0.0f)},
+		Vertex{glm::vec3(-0.5f, 0.5f, 0.5f), 0.0f, glm::vec3(0.0f, 1.0f, 0.0f), 0.0f, glm::vec2(0.0f, 0.0f)},
 	};
 
 	std::vector<uint32_t> indices = {
@@ -140,7 +140,7 @@ std::unique_ptr<Mesh> Mesh::createSphereMesh(VulkanContext* context) {
 			auto sinTheta = sinf(theta);
 			auto point = glm::vec3(cosPhi * cosTheta, sinPhi, -cosPhi * sinTheta);
 
-			vertices[i * circleVertCount + j] = Vertex{ point * 0.5f, point, glm::vec2(u, v) };
+			vertices[i * circleVertCount + j] = Vertex{ point * 0.5f, 0.0f, point, 0.0f, glm::vec2(u, v) };
 		}
 	}
 
@@ -166,10 +166,10 @@ std::unique_ptr<Mesh> Mesh::createSphereMesh(VulkanContext* context) {
 std::unique_ptr<Mesh> Mesh::createPlaneMesh(VulkanContext* context)
 {
 	std::vector<Vertex> vertices = {
-		Vertex{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 0.0f)},
-		Vertex{glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 0.0f)},
-		Vertex{glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(1.0f, 1.0f)},
-		Vertex{glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec2(0.0f, 1.0f)},
+		Vertex{glm::vec3(-0.5f, -0.5f, 0.0f), 0.0f, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec2(0.0f, 0.0f)},
+		Vertex{glm::vec3(0.5f, -0.5f, 0.0f), 0.0f, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec2(1.0f, 0.0f)},
+		Vertex{glm::vec3(0.5f, 0.5f, 0.0f), 0.0f, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec2(1.0f, 1.0f)},
+		Vertex{glm::vec3(-0.5f, 0.5f, 0.0f), 0.0f, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec2(0.0f, 1.0f)},
 	};
 
 	std::vector<uint32_t> indices = {

@@ -63,7 +63,8 @@ void main() {
 
     // G-buffer outputs
     outPosition = vec4(fragWorldPos, 1.0);
-    outNormal   = vec4(normal, float(materialIndex));
+    // outNormal   = vec4(normal, float(materialIndex));
+	outNormal   = vec4(normal, 1.0);
     outAlbedo   = vec4(albedo, 1.0);
     outPBR      = vec4(ao, roughness, metallic, 1.0);
 }
