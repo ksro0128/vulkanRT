@@ -1,8 +1,14 @@
 #version 460
 #extension GL_EXT_ray_tracing : require
 
-layout(location = 0) rayPayloadInEXT vec4 payload;
+struct RayPayload {
+    vec3 color;
+    int bounce;
+};
+
+layout(location = 0) rayPayloadInEXT RayPayload payload;
+
 
 void main() {
-    payload = vec4(0.0, 0.0, 0.0, 1.0); // debug
+    payload.color = vec3(0.0);
 }

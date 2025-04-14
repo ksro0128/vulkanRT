@@ -13,6 +13,8 @@ layout(set = 1, binding = 1) uniform accelerationStructureEXT topLevelAS;
 
 layout(set = 4, binding = 0) uniform sampler2D gPosition;
 layout(set = 4, binding = 1) uniform sampler2D gNormal;
+layout(set = 4, binding = 2) uniform sampler2D gAlbedo;
+layout(set = 4, binding = 3) uniform sampler2D gPBR;
 
 struct RayPayload {
     vec3 color;
@@ -22,16 +24,42 @@ struct RayPayload {
 layout(location = 0) rayPayloadEXT RayPayload payload;
 
 
+float hash1(vec2 p) {
+    p = fract(p * vec2(123.34, 345.45));
+    p += dot(p, p + 34.345);
+    return fract(p.x * p.y);
+}
+
+
 void main() {
     vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
     vec2 resolution = vec2(gl_LaunchSizeEXT.xy);
     vec2 uv = pixelCenter / resolution;
 
     vec3 worldPos = texture(gPosition, uv).xyz;
-    vec3 normal = normalize(texture(gNormal, uv).xyz);
+    vec3 worldNormal = normalize(texture(gNormal, uv).xyz);
+    float roughness = texture(gPBR, uv).g;
 
     vec3 viewDir = normalize(worldPos - camera.camPos);
-    vec3 reflectDir = reflect(viewDir, normal);
+    vec3 perfectReflect = normalize(reflect(viewDir, worldNormal));
+
+    // random vector for perturbation
+    vec3 rand = normalize(vec3(
+        hash1(uv),
+        hash1(uv + 0.13),
+        hash1(uv + 0.37)
+    ));
+
+    // TBN basis from normal
+    vec3 up = abs(worldNormal.y) < 0.999 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+    vec3 tangent = normalize(cross(up, worldNormal));
+    vec3 bitangent = cross(worldNormal, tangent);
+    mat3 tbn = mat3(tangent, bitangent, worldNormal);
+
+    float spread = pow(roughness, 2.0);
+
+    vec3 perturbed = normalize(tbn * rand);
+    vec3 reflectDir = normalize(mix(perfectReflect, perturbed, spread));
 
     payload.color = vec3(0.0);
     payload.bounce = 0;
@@ -41,9 +69,9 @@ void main() {
         gl_RayFlagsOpaqueEXT,
         0xFF,
         0, 0, 0,
-        worldPos + reflectDir * 0.05,    // ray origin
+        worldPos + reflectDir * 0.05,
         0.001,
-        reflectDir,  // ray dir
+        reflectDir,
         10000.0,
         0
     );
