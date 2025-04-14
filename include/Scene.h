@@ -13,9 +13,9 @@ public:
 	glm::vec3& getAmbientColor() { return m_ambientColor; }
 	std::vector<Light>& getLights() { return m_lights; }
 	std::vector<Object>& getObjects() { return m_objects; }
-	uint32_t getMaxModelIndex() { return maxModelIndex; }
-	uint32_t getMaxMaterialIndex() { return maxMaterialIndex; }
-	uint32_t getMaxTextureIndex() { return maxTextureIndex; }
+	uint32_t& getMaxModelIndex() { return maxModelIndex; }
+	uint32_t& getMaxMaterialIndex() { return maxMaterialIndex; }
+	uint32_t& getMaxTextureIndex() { return maxTextureIndex; }
 
 private:
 	glm::vec3 m_ambientColor = glm::vec3(0.2f, 0.2f, 0.2f);

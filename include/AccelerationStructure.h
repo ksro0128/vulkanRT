@@ -37,15 +37,12 @@ private:
 class TopLevelAS : public AccelerationStructure {
 public:
 	static std::unique_ptr<TopLevelAS> createTopLevelAS(VulkanContext* context, std::vector<std::unique_ptr<BottomLevelAS>>& blasList,
-		std::vector<Model>& modelList, std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices,
-		std::vector<ModelBuffer>& modelBuffers, std::vector<Object>& objects);
+		std::vector<ModelBuffer>& modelBuffers, std::vector<ObjectInstance>& objDescs);
 	static std::unique_ptr<TopLevelAS> createEmptyTopLevelAS(VulkanContext* context);
 	void rebuild(std::vector<std::unique_ptr<BottomLevelAS>>& blasList,
-		std::vector<Model>& modelList, std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices,
-		std::vector<ModelBuffer>& modelBuffers, std::vector<Object>& objects);
+		std::vector<ModelBuffer>& modelBuffers, std::vector<ObjectInstance>& objDescs);
 private:
 	void initTLAS(VulkanContext* context, std::vector<std::unique_ptr<BottomLevelAS>>& blasList,
-		std::vector<Model>& modelList, std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices,
-		std::vector<ModelBuffer>& modelBuffers, std::vector<Object>& objects);
+		std::vector<ModelBuffer>& modelBuffers, std::vector<ObjectInstance>& objDescs);
 	void initEmptyTLAS(VulkanContext* context);
 };

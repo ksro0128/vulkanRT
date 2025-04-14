@@ -31,6 +31,11 @@ layout(set = 0, binding = 1) readonly buffer LightBuffer {
     int lightCount;
 }lightInfo;
 
+layout(set = 0, binding = 2) uniform RenderOptions {
+    int useRTReflection;
+    vec3 pad;
+} renderOptions;
+
 layout(set = 1, binding = 0) uniform sampler2D gPosition;
 layout(set = 1, binding = 1) uniform sampler2D gNormal;
 layout(set = 1, binding = 2) uniform sampler2D gAlbedo;
@@ -43,6 +48,8 @@ layout(set = 2, binding = 0) uniform LightMatrixBuffer {
 layout(set = 2, binding = 1) uniform sampler2D shadowMaps[7];
 
 layout(set = 2, binding = 2) uniform samplerCube shadowCubeMap;
+
+layout(set = 3, binding = 0, rgba16f) uniform image2D rtOutput;
 
 
 // Fresnel-Schlick Approximation
@@ -166,6 +173,7 @@ void main() {
     vec3 N = normal;
     vec3 V = normalize(camera.camPos - fragPos);
 
+    vec4 rtColor = imageLoad(rtOutput, ivec2(gl_FragCoord.xy));
     vec3 finalColor = vec3(0.0);
 
     vec3 ambient =  lightInfo.ambientColor * albedo * ao;
@@ -256,5 +264,13 @@ void main() {
 
         finalColor += (diffuse + specular) * radiance;
     }
+
+    if (renderOptions.useRTReflection == 1) {
+        vec3 F0 = mix(vec3(0.04), albedo, metallic);
+        vec3 F = fresnelSchlick(max(dot(N, V), 0.0), F0);
+        float reflectance = 1.0 - roughness;
+        finalColor += rtColor.rgb * F * reflectance;
+    }
+
     outColor = vec4(clamp(finalColor, 0.0, 1.0), 1.0);
 }

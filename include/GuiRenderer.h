@@ -27,6 +27,7 @@ public:
 
 	std::function<bool()> getRTEnabled;
 	std::function<void(bool)> setRTEnabled;
+	std::function<void(const Material&)> addMaterial;
 
 private:
     VulkanContext* context;

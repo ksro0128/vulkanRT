@@ -113,11 +113,17 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
          ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
          ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
 
-         ImGuiID dock_main_id = dockspace_id;
-         ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.2f, nullptr, &dock_main_id);
+		 ImGuiID dock_main_id = dockspace_id;
+		 ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.2f, nullptr, &dock_main_id);
 		 ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.25f, nullptr, &dock_main_id);
-         ImGui::DockBuilderDockWindow("Scene", dock_id_left);
-         ImGui::DockBuilderDockWindow("Viewport", dock_main_id);
+
+		 // 왼쪽 패널을 위/아래로 나눔 → 위: Scene, 아래: Material Editor
+		 ImGuiID dock_id_material = ImGui::DockBuilderSplitNode(dock_id_left, ImGuiDir_Down, 0.5f, nullptr, &dock_id_left);
+
+		 // 각각의 도킹 위치에 창 할당
+		 ImGui::DockBuilderDockWindow("Scene", dock_id_left);
+		 ImGui::DockBuilderDockWindow("Material Editor", dock_id_material);
+		 ImGui::DockBuilderDockWindow("Viewport", dock_main_id);
 		 ImGui::DockBuilderDockWindow("Profiler", dock_id_right);
 
          ImGui::DockBuilderFinish(dockspace_id);
@@ -400,6 +406,39 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 	if (disableUI) { ImGui::EndDisabled(); }
 
      ImGui::End();
+
+	 ImGui::Begin("Material Editor");
+
+	 static Material newMaterial;
+	 static bool showCreate = true;
+
+	 if (showCreate) {
+		 ImGui::Text("Create New Material");
+		 ImGui::ColorEdit4("Base Color", glm::value_ptr(newMaterial.baseColor));
+		 ImGui::SliderFloat("Roughness", &newMaterial.roughness, 0.0f, 1.0f);
+		 ImGui::SliderFloat("Metallic", &newMaterial.metallic, 0.0f, 1.0f);
+
+		 if (ImGui::Button("Create Material")) {
+			 newMaterial.emissiveFactor = glm::vec3(0.0f);
+			 newMaterial.ao = 1.0f;
+			 newMaterial.albedoTexIndex = -1;
+			 newMaterial.normalTexIndex = -1;
+			 newMaterial.metallicTexIndex = -1;
+			 newMaterial.roughnessTexIndex = -1;
+			 newMaterial.aoTexIndex = -1;
+			 newMaterial.emissiveTexIndex = -1;
+
+			 scene->getMaxMaterialIndex()++;
+
+			 if (addMaterial) {
+				 addMaterial(newMaterial);
+			 }
+		 }
+	 }
+
+	 ImGui::End();
+
+
 
      ImGui::Render();
      ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);

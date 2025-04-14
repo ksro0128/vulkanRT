@@ -68,6 +68,7 @@ private:
 	std::array<std::unique_ptr<StorageBuffer>, MAX_FRAMES_IN_FLIGHT> m_modelBuffers;
 	std::array<std::unique_ptr<StorageBuffer>, MAX_FRAMES_IN_FLIGHT> m_materialBuffers;
 	std::array<std::unique_ptr<UniformBuffer>, MAX_FRAMES_IN_FLIGHT> m_lightMatrixBuffers;
+	std::array<std::unique_ptr<UniformBuffer>, MAX_FRAMES_IN_FLIGHT> m_renderOptionsBuffers;
 
 	// renderpass
 	std::unique_ptr<RenderPass> m_gbufferRenderPass;
@@ -131,19 +132,22 @@ private:
 	void loadModel(const std::string& modelPath);
 	void createDefaultModels();
 
-	std::unordered_map<int32_t, std::vector<int32_t>> createObjectMap();
-	void createModelInstances(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices, std::vector<ModelBuffer>& modelBuffers);
-	void updateObjectInstances(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices);
-	void updateTLAS(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices, std::vector<ModelBuffer>& modelBuffers);
+
+	void createObjDesc(std::vector<ObjectInstance>& ObjDescs, std::vector<ModelBuffer>& modelBuffers);
+
+
+	void updateTLAS(std::vector<ObjectInstance>& objDescs, std::vector<ModelBuffer>& modelBuffers);
+
 
 	// record command buffer
-	void recordGbufferCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices);
+	void recordGbufferCommandBuffer(std::vector<ObjectInstance>& objDescs);
 	void recordLightPassCommandBuffer();
 	void recordImGuiCommandBuffer(uint32_t imageIndex, float deltaTime);
-	void recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices);
+	void recordShadowMapCommandBuffer(std::vector<ObjectInstance>& objDescs);
 	void recordRayTracingCommandBuffer();
 
 	void printAllResources();
+	void printObjectInstances(const std::vector<ObjectInstance>& instances);
 
 	void transferImageLayout(VkCommandBuffer cmd, Texture* texture, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, uint32_t layerCount = 1);
 

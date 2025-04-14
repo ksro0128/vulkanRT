@@ -10,14 +10,14 @@ void DescriptorSet::cleanup() {
 }
 
 std::unique_ptr<DescriptorSet> DescriptorSet::createGlobalDescriptorSet(VulkanContext* context, DescriptorSetLayout* layout, 
-	UniformBuffer* cameraBuffer, StorageBuffer* lightBuffer) {
+	UniformBuffer* cameraBuffer, StorageBuffer* lightBuffer, UniformBuffer* renderOptionsBuffer) {
 	std::unique_ptr<DescriptorSet> descriptorSet = std::unique_ptr<DescriptorSet>(new DescriptorSet());
-	descriptorSet->initGlobal(context, layout, cameraBuffer, lightBuffer);
+	descriptorSet->initGlobal(context, layout, cameraBuffer, lightBuffer, renderOptionsBuffer);
 	return descriptorSet;
 }
 
 void DescriptorSet::initGlobal(VulkanContext* context, DescriptorSetLayout* layout,
-	UniformBuffer* cameraBuffer, StorageBuffer* lightBuffer)
+	UniformBuffer* cameraBuffer, StorageBuffer* lightBuffer, UniformBuffer* renderOptionsBuffer)
 {
 	this->context = context;
 
@@ -32,7 +32,7 @@ void DescriptorSet::initGlobal(VulkanContext* context, DescriptorSetLayout* layo
 		throw std::runtime_error("failed to allocate global descriptor set!");
 	}
 
-	std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+	std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
 	// Binding 0: Camera (UBO)
 	VkDescriptorBufferInfo cameraBufferInfo{};
@@ -61,6 +61,20 @@ void DescriptorSet::initGlobal(VulkanContext* context, DescriptorSetLayout* layo
 	descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	descriptorWrites[1].descriptorCount = 1;
 	descriptorWrites[1].pBufferInfo = &lightBufferInfo;
+
+	// Binding 2: RenderOptions (UBO)
+	VkDescriptorBufferInfo optionsBufferInfo{};
+	optionsBufferInfo.buffer = renderOptionsBuffer->getBuffer();
+	optionsBufferInfo.offset = 0;
+	optionsBufferInfo.range = sizeof(RenderOptions);
+
+	descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrites[2].dstSet = m_descriptorSet;
+	descriptorWrites[2].dstBinding = 2;
+	descriptorWrites[2].dstArrayElement = 0;
+	descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	descriptorWrites[2].descriptorCount = 1;
+	descriptorWrites[2].pBufferInfo = &optionsBufferInfo;
 
 	vkUpdateDescriptorSets(context->getDevice(),
 		static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);

@@ -126,20 +126,19 @@ void BottomLevelAS::initBLAS(VulkanContext* context, Mesh* mesh) {
 }
 
 std::unique_ptr<TopLevelAS> TopLevelAS::createTopLevelAS(VulkanContext* context, std::vector<std::unique_ptr<BottomLevelAS>>& blasList,
-	std::vector<Model>& modelList, std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices,
-	std::vector<ModelBuffer>& modelBuffers, std::vector<Object>& objects) {
+	std::vector<ModelBuffer>& modelBuffers, std::vector<ObjectInstance>& objDescs) {
 	std::unique_ptr<TopLevelAS> as = std::unique_ptr<TopLevelAS>(new TopLevelAS());
-	as->initTLAS(context, blasList, modelList, modelToMatrixIndices, modelBuffers, objects);
+	as->initTLAS(context, blasList, modelBuffers, objDescs);
 	return as;
 }
 
 void TopLevelAS::initTLAS(VulkanContext* context, std::vector<std::unique_ptr<BottomLevelAS>>& blasList,
-	std::vector<Model>& modelList, std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices,
-	std::vector<ModelBuffer>& modelBuffers, std::vector<Object>& objects) {
+	std::vector<ModelBuffer>& modelBuffers, std::vector<ObjectInstance>& objDescs) {
 	this->context = context;
 
 	std::vector<VkAccelerationStructureInstanceKHR> instances;
 
+	/*
 	for (const auto& [key, value] : modelToMatrixIndices) {
 		for (int32_t i = 0; i < modelList[key].mesh.size(); i++) {
 			for (int32_t j = 0; j < value.size(); j++) {
@@ -161,6 +160,22 @@ void TopLevelAS::initTLAS(VulkanContext* context, std::vector<std::unique_ptr<Bo
 			}
 		}
 	}
+	*/
+	for (int i = 0; i < objDescs.size(); ++i) {
+		const auto& inst = objDescs[i];
+
+		VkAccelerationStructureInstanceKHR tlasInstance{};
+		tlasInstance.transform = glmToVkTransform(modelBuffers[inst.modelMatrixIndex].model);
+		tlasInstance.instanceCustomIndex = i; // gl_InstanceCustomIndexEXT == i (ObjectInstance[i])
+		tlasInstance.mask = 0xFF;
+		tlasInstance.instanceShaderBindingTableRecordOffset = 0;
+		tlasInstance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+		tlasInstance.accelerationStructureReference = blasList[inst.meshIndex]->getDeviceAddress();
+
+		instances.push_back(tlasInstance);
+	}
+
+
 
 	VkDeviceSize instanceBufferSize = sizeof(VkAccelerationStructureInstanceKHR) * instances.size();
 
@@ -266,11 +281,10 @@ void TopLevelAS::initTLAS(VulkanContext* context, std::vector<std::unique_ptr<Bo
 }
 
 void TopLevelAS::rebuild(std::vector<std::unique_ptr<BottomLevelAS>>& blasList,
-	std::vector<Model>& modelList, std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices,
-	std::vector<ModelBuffer>& modelBuffers, std::vector<Object>& objects) {
+	std::vector<ModelBuffer>& modelBuffers, std::vector<ObjectInstance>& objDescs) {
 
 	cleanup();
-	initTLAS(context, blasList, modelList, modelToMatrixIndices, modelBuffers, objects);
+	initTLAS(context, blasList, modelBuffers, objDescs);
 }
 
 std::unique_ptr<TopLevelAS> TopLevelAS::createEmptyTopLevelAS(VulkanContext* context) {

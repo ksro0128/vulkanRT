@@ -28,21 +28,27 @@ void Renderer::init(GLFWwindow* window) {
 
 	createDefaultModels();
 
-	// loadModel("./assets/materials/aerial_grass_rock_1k.gltf/aerial_grass_rock_1k.gltf");
-	// loadModel("./assets/materials/aerial_rocks_02_1k.gltf/aerial_rocks_02_1k.gltf");
-	// loadModel("./assets/materials/asphalt_02_1k.gltf/asphalt_02_1k.gltf");
-	// loadModel("./assets/materials/beige_wall_001_1k.gltf/beige_wall_001_1k.gltf");
-	// loadModel("./assets/materials/brick_wall_13_4k.gltf/brick_wall_13_4k.gltf");
-	// loadModel("./assets/materials/brown_mud_leaves_01_1k.gltf/brown_mud_leaves_01_1k.gltf");
-	// loadModel("./assets/materials/plywood_1k.gltf/plywood_1k.gltf");
-	// loadModel("./assets/materials/fabric_pattern_07_1k.gltf/fabric_pattern_07_1k.gltf");
-	// loadModel("./assets/models/lion_head_1k.gltf/lion_head_1k.gltf");
-	// loadModel("./assets/models/Camera_01_1k.gltf/Camera_01_1k.gltf");
-	loadModel("./assets/main1_sponza/NewSponza_Main_glTF_003.gltf");
+	/*
+	 loadModel("./assets/materials/aerial_grass_rock_1k.gltf/aerial_grass_rock_1k.gltf");
+	 loadModel("./assets/materials/aerial_rocks_02_1k.gltf/aerial_rocks_02_1k.gltf");
+	 loadModel("./assets/materials/asphalt_02_1k.gltf/asphalt_02_1k.gltf");
+	 loadModel("./assets/materials/beige_wall_001_1k.gltf/beige_wall_001_1k.gltf");
+	 loadModel("./assets/materials/brick_wall_13_4k.gltf/brick_wall_13_4k.gltf");
+	 loadModel("./assets/materials/brown_mud_leaves_01_1k.gltf/brown_mud_leaves_01_1k.gltf");
+	 loadModel("./assets/materials/plywood_1k.gltf/plywood_1k.gltf");
+	 loadModel("./assets/materials/fabric_pattern_07_1k.gltf/fabric_pattern_07_1k.gltf");
+	 loadModel("./assets/models/lion_head_1k.gltf/lion_head_1k.gltf");
+	 loadModel("./assets/models/Camera_01_1k.gltf/Camera_01_1k.gltf");
+	 */
+
+	//loadModel("./assets/main1_sponza/NewSponza_Main_glTF_003.gltf");
 	//loadModel("./main1_sponza/NewSponza_Main_glTF_003.gltf");
 	// loadModel("./pkg_a_curtains/NewSponza_Curtains_glTF.gltf");
-	//loadModel("./assets/models/knight.glb");
-	//loadModel("nodecal.glb");
+	
+	
+	
+	 loadModel("./assets/models/knight.glb");
+	 loadModel("./assets/nodecal.glb");
 
 	// descriptorset layout
 	m_globalLayout = DescriptorSetLayout::createGlobalDescriptorSetLayout(m_context.get());
@@ -61,6 +67,7 @@ void Renderer::init(GLFWwindow* window) {
 		m_modelBuffers[i] = StorageBuffer::createStorageBuffer(m_context.get(), sizeof(ModelBuffer) * MAX_OBJECT_COUNT);
 		m_materialBuffers[i] = StorageBuffer::createStorageBuffer(m_context.get(), sizeof(Material) * MAX_MATERIAL_COUNT * 2);
 		m_lightMatrixBuffers[i] = UniformBuffer::createUniformBuffer(m_context.get(), sizeof(LightMatrix) * 13);
+		m_renderOptionsBuffers[i] = UniformBuffer::createUniformBuffer(m_context.get(), sizeof(RenderOptions));
 	}
 
 	// renderpass
@@ -135,7 +142,7 @@ void Renderer::init(GLFWwindow* window) {
 	// descriptorset
 	m_attachmentDescSets.resize(MAX_FRAMES_IN_FLIGHT);
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		m_globlaDescSets[i] = DescriptorSet::createGlobalDescriptorSet(m_context.get(), m_globalLayout.get(), m_cameraBuffers[i].get(), m_lightBuffers[i].get());
+		m_globlaDescSets[i] = DescriptorSet::createGlobalDescriptorSet(m_context.get(), m_globalLayout.get(), m_cameraBuffers[i].get(), m_lightBuffers[i].get(), m_renderOptionsBuffers[i].get());
 		m_objectMaterialDescSets[i] = DescriptorSet::createObjectMaterialDescriptorSet(m_context.get(), m_objectMaterialLayout.get(), m_objectInstanceBuffers[i].get());
 		m_bindlessDescSets[i] = DescriptorSet::createBindlessDescriptorSet(m_context.get(), m_bindlessLayout.get(), m_modelBuffers[i].get(), m_materialBuffers[i].get(), m_textureList);
 		m_attachmentDescSets[i] = DescriptorSet::createAttachmentDescriptorSet(m_context.get(), m_attachmentLayout.get(), m_gbufferAttachments[i]);
@@ -148,9 +155,9 @@ void Renderer::init(GLFWwindow* window) {
 
 	// pipeline
 	m_gbufferPipeline = Pipeline::createGbufferPipeline(m_context.get(), m_gbufferRenderPass.get(), {m_globalLayout.get(), m_objectMaterialLayout.get(), m_bindlessLayout.get()});
-	m_lightPassPipeline = Pipeline::createLightPassPipeline(m_context.get(), m_lightPassRenderPass.get(), { m_globalLayout.get(), m_attachmentLayout.get(), m_shadowLayout.get() });
+	m_lightPassPipeline = Pipeline::createLightPassPipeline(m_context.get(), m_lightPassRenderPass.get(), { m_globalLayout.get(), m_attachmentLayout.get(), m_shadowLayout.get(), m_rayTracingLayout.get()});
 	m_shadowMapPipeline = Pipeline::createShadowMapPipeline(m_context.get(), m_shadowMapRenderPass.get(), { m_objectMaterialLayout.get(), m_bindlessLayout.get() });
-	m_rtPipeline = RayTracingPipeline::createRayTracingPipeline(m_context.get(), { m_globalLayout.get(), m_rayTracingLayout.get(), m_bindlessLayout.get() });
+	m_rtPipeline = RayTracingPipeline::createRayTracingPipeline(m_context.get(), { m_globalLayout.get(), m_rayTracingLayout.get(), m_objectMaterialLayout.get(), m_bindlessLayout.get(), m_attachmentLayout.get() });
 
 	printAllResources();
 
@@ -159,6 +166,11 @@ void Renderer::init(GLFWwindow* window) {
 	m_guiRenderer = GuiRenderer::createGuiRenderer(m_context.get(), window, m_imguiRenderPass.get(), m_swapChain.get());
 	m_guiRenderer->setRTEnabled = [this](bool enabled) { m_rtEnabled = enabled; };
 	m_guiRenderer->getRTEnabled = [this]() { return m_rtEnabled; };
+	m_guiRenderer->addMaterial = [this](const Material& material) {
+		m_materialList.push_back(material);
+		m_materialBuffers[0]->updateStorageBuffer(&m_materialList[0], sizeof(Material) * m_materialList.size());
+		m_materialBuffers[1]->updateStorageBuffer(&m_materialList[0], sizeof(Material) * m_materialList.size());
+		};
 
 
 	m_scene = Scene::createScene(m_modelList.size(), m_materialList.size(), m_textureList.size());
@@ -201,13 +213,16 @@ void Renderer::init(GLFWwindow* window) {
 	}
 
 	// create top level acceleration structure
-	std::unordered_map<int32_t, std::vector<int32_t>> modelToMatrixIndices;
+
+	std::vector<ObjectInstance> objDescs;
 	std::vector<ModelBuffer> modelBuffers;
-	createModelInstances(modelToMatrixIndices, modelBuffers);
+
+	createObjDesc(objDescs, modelBuffers);
 
 	m_tlas.resize(MAX_FRAMES_IN_FLIGHT);
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		m_tlas[i] = TopLevelAS::createTopLevelAS(m_context.get(), m_blasList, m_modelList, modelToMatrixIndices, modelBuffers, m_scene->getObjects());
+		m_tlas[i] = TopLevelAS::createTopLevelAS(m_context.get(), m_blasList, modelBuffers, objDescs);
+
 	}
 
 	m_emptyTLAS = TopLevelAS::createEmptyTopLevelAS(m_context.get());
@@ -230,7 +245,6 @@ void Renderer::update(float deltaTime) {
 }
 
 void Renderer::render(float deltaTime) {
-	//std::cout << "new frame" << std::endl;
 	vkWaitForFences(m_context->getDevice(), 1, &m_syncObjects->getInFlightFences()[currentFrame], VK_TRUE, UINT64_MAX);
 
 	uint32_t imageIndex;
@@ -263,21 +277,19 @@ void Renderer::render(float deltaTime) {
 		throw std::runtime_error("failed to begin recording command buffer!");
 	}
 
-	// objectmap update
 
-	//auto objectMap = createObjectMap();
-	std::unordered_map<int32_t, std::vector<int32_t>> modelToMatrixIndices;
+	std::vector<ObjectInstance> objDescs;
 	std::vector<ModelBuffer> modelBuffers;
 
-	createModelInstances(modelToMatrixIndices, modelBuffers);
-	if (!modelBuffers.empty()) {
-		m_modelBuffers[currentFrame]->updateStorageBuffer(&modelBuffers[0], sizeof(ModelBuffer) * modelBuffers.size());
-	}
-	updateObjectInstances(modelToMatrixIndices);
+	createObjDesc(objDescs, modelBuffers);
 
-	updateTLAS(modelToMatrixIndices, modelBuffers);
+	updateTLAS(objDescs, modelBuffers);
 
-	recordShadowMapCommandBuffer(modelToMatrixIndices);
+	//printObjectInstances(objDescs);
+
+
+
+	recordShadowMapCommandBuffer(objDescs);
 
 	for (int i = 0; i < 7; i++) {
 		transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_shadowMapTextures[currentFrame][i].get(),
@@ -293,7 +305,7 @@ void Renderer::render(float deltaTime) {
 
 
 	// record command buffer
-	recordGbufferCommandBuffer(modelToMatrixIndices);
+	recordGbufferCommandBuffer(objDescs);
 
 
 	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].albedo.get(), 
@@ -313,14 +325,29 @@ void Renderer::render(float deltaTime) {
 		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame],
+		m_rtReflectionTextures[currentFrame].get(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_IMAGE_LAYOUT_GENERAL,
+		VK_ACCESS_SHADER_READ_BIT,
+		VK_ACCESS_SHADER_WRITE_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+		VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
 
 	if (m_rtEnabled) {
+		RenderOptions renderOptions;
+		renderOptions.useRTReflection = 1;
+		m_renderOptionsBuffers[currentFrame]->updateUniformBuffer(&renderOptions, sizeof(RenderOptions));
 		recordRayTracingCommandBuffer();
+	}
+	else {
+		RenderOptions renderOptions;
+		renderOptions.useRTReflection = 0;
+		m_renderOptionsBuffers[currentFrame]->updateUniformBuffer(&renderOptions, sizeof(RenderOptions));
 	}
 	
 	recordLightPassCommandBuffer();
 
-	
 
 	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_outputTextures[currentFrame].get(),
 		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -339,7 +366,15 @@ void Renderer::render(float deltaTime) {
 		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, 6);
 	
-	
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame],
+		m_rtReflectionTextures[currentFrame].get(),
+		VK_IMAGE_LAYOUT_GENERAL,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_ACCESS_SHADER_WRITE_BIT,
+		VK_ACCESS_SHADER_READ_BIT,
+		VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
 	recordImGuiCommandBuffer(imageIndex, deltaTime);
 
 	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].albedo.get(),
@@ -601,10 +636,10 @@ void Renderer::printAllResources() {
 	std::cout << "=======================================" << std::endl;
 }
 
-std::unordered_map<int32_t, std::vector<int32_t>> Renderer::createObjectMap() {
+void Renderer::createObjDesc(std::vector<ObjectInstance>& ObjDescs, std::vector<ModelBuffer>& modelBuffers) {
 	auto& objects = m_scene->getObjects();
 	std::unordered_map<int32_t, std::vector<int32_t>> objectMap;
-	std::vector<ModelBuffer> modelBuffers(objects.size());
+	modelBuffers.resize(objects.size());
 	for (int32_t i = 0; i < objects.size(); i++) {
 		objectMap[objects[i].modelIndex].push_back(i);
 
@@ -620,79 +655,31 @@ std::unordered_map<int32_t, std::vector<int32_t>> Renderer::createObjectMap() {
 		m_modelBuffers[currentFrame]->updateStorageBuffer(&modelBuffers[0], sizeof(ModelBuffer) * modelBuffers.size());
 	}
 
-	std::vector<ObjectInstance> objectInstances;
-	objectInstances.reserve(objects.size() * 16);
-	int32_t index = 0;
+	ObjDescs.reserve(objects.size() * 4);
 	for (const auto& [key, value] : objectMap) {
 		for (int32_t i = 0; i < m_modelList[key].mesh.size(); i++) {
-			int32_t startIndex = index;
 			for (int32_t j = 0; j < value.size(); j++) {
+				int32_t modelMatrixIdx = value[j];
 				int32_t materialIndex;
-				if (objects[value[j]].overrideMaterialIndex.size() > i) {
-					materialIndex = objects[value[j]].overrideMaterialIndex[i];
+				if (objects[modelMatrixIdx].overrideMaterialIndex.size() > i) {
+					materialIndex = objects[modelMatrixIdx].overrideMaterialIndex[i];
 				}
 				else {
 					materialIndex = m_modelList[key].material[i];
 				}
-				objectInstances.push_back({ value[j], materialIndex });
-				index++;
+				int32_t meshIdx = m_modelList[key].mesh[i];
+				uint64_t vertexAddress = m_meshList[meshIdx]->getVertexBuffer()->getDeviceAddress();
+				uint64_t indexAddress = m_meshList[meshIdx]->getIndexBuffer()->getDeviceAddress();
+				ObjDescs.push_back({ vertexAddress, indexAddress, modelMatrixIdx, materialIndex, meshIdx, 0 });
 			}
 		}
 	}
-	if (!objectInstances.empty()) {
-		m_objectInstanceBuffers[currentFrame]->updateStorageBuffer(&objectInstances[0], sizeof(ObjectInstance) * objectInstances.size());
-	}
-
-	return objectMap;
-}
-
-void Renderer::createModelInstances(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices, std::vector<ModelBuffer>& modelBuffers) {
-	auto& objects = m_scene->getObjects();
-	modelToMatrixIndices.clear();
-	modelBuffers.clear();
-	modelBuffers.resize(objects.size());
-	for (int32_t i = 0; i < objects.size(); i++) {
-		modelToMatrixIndices[objects[i].modelIndex].push_back(i);
-
-		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, objects[i].position);
-		model = glm::rotate(model, glm::radians(objects[i].rotation.x), glm::vec3(1, 0, 0));
-		model = glm::rotate(model, glm::radians(objects[i].rotation.y), glm::vec3(0, 1, 0));
-		model = glm::rotate(model, glm::radians(objects[i].rotation.z), glm::vec3(0, 0, 1));
-		model = glm::scale(model, objects[i].scale);
-		modelBuffers[i].model = model;
+	if (!ObjDescs.empty()) {
+		m_objectInstanceBuffers[currentFrame]->updateStorageBuffer(&ObjDescs[0], sizeof(ObjectInstance) * ObjDescs.size());
 	}
 }
 
-void Renderer::updateObjectInstances(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices) {
-	auto& objects = m_scene->getObjects();
-	std::vector<ObjectInstance> objectInstances;
-	objectInstances.reserve(objects.size() * 16);
-	int32_t index = 0;
-	for (const auto& [key, value] : modelToMatrixIndices) {
-		for (int32_t i = 0; i < m_modelList[key].mesh.size(); i++) {
-			int32_t startIndex = index;
-			for (int32_t j = 0; j < value.size(); j++) {
-				int32_t materialIndex;
-				if (objects[value[j]].overrideMaterialIndex.size() > i) {
-					materialIndex = objects[value[j]].overrideMaterialIndex[i];
-				}
-				else {
-					materialIndex = m_modelList[key].material[i];
-				}
-				objectInstances.push_back({ value[j], materialIndex });
-				index++;
-			}
-		}
-	}
-	if (!objectInstances.empty()) {
-		m_objectInstanceBuffers[currentFrame]->updateStorageBuffer(&objectInstances[0], sizeof(ObjectInstance) * objectInstances.size());
-	}
-}
-
-
-
-void Renderer::recordGbufferCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices) {
+void Renderer::recordGbufferCommandBuffer(std::vector<ObjectInstance>& objDescs) {
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = m_gbufferRenderPass->getRenderPass();
@@ -742,13 +729,35 @@ void Renderer::recordGbufferCommandBuffer(std::unordered_map<int32_t, std::vecto
 	vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbufferPipeline->getPipelineLayout(), 1, 1, &m_objectMaterialDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
 	vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbufferPipeline->getPipelineLayout(), 2, 1, &m_bindlessDescSets[currentFrame]->getDescriptorSet(), 0, nullptr);
 
-	int32_t index = 0;
+	/*int32_t index = 0;
 	for (const auto& [key, value] : modelToMatrixIndices) {
 		for (int32_t i = 0; i < m_modelList[key].mesh.size(); i++) {
 			int32_t startIndex = index;
 			m_meshList[m_modelList[key].mesh[i]]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], value.size(), startIndex);
 			index += value.size();
 		}
+	}*/
+
+	int32_t currentMeshIdx = -1;
+	uint32_t firstInstance = 0;
+	uint32_t instanceCount = 0;
+
+	for (uint32_t i = 0; i < objDescs.size(); i++) {
+		int32_t meshIdx = objDescs[i].meshIndex;
+		if (meshIdx != currentMeshIdx) {
+			if (instanceCount > 0 && currentMeshIdx >= 0) {
+				m_meshList[currentMeshIdx]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], instanceCount, firstInstance);
+			}
+			currentMeshIdx = meshIdx;
+			firstInstance = i;
+			instanceCount = 1;
+		}
+		else {
+			instanceCount++;
+		}
+	}
+	if (instanceCount > 0 && currentMeshIdx >= 0) {
+		m_meshList[currentMeshIdx]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], instanceCount, firstInstance);
 	}
 	vkCmdEndRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame]);
 }
@@ -787,9 +796,10 @@ void Renderer::recordLightPassCommandBuffer() {
 	VkDescriptorSet sets[] = {
 		m_globlaDescSets[currentFrame]->getDescriptorSet(),
 		m_attachmentDescSets[currentFrame]->getDescriptorSet(),
-		m_shadowDescSets[currentFrame]->getDescriptorSet()
+		m_shadowDescSets[currentFrame]->getDescriptorSet(),
+		m_rtDescSets[currentFrame]->getDescriptorSet()
 	};
-	vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_lightPassPipeline->getPipelineLayout(), 0, 3, sets, 0, nullptr);
+	vkCmdBindDescriptorSets(m_commandBuffers->getCommandBuffers()[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_lightPassPipeline->getPipelineLayout(), 0, 4, sets, 0, nullptr);
 
 	LightBuffer lightBuffer;
 	memset(&lightBuffer, 0, sizeof(LightBuffer));
@@ -808,7 +818,7 @@ void Renderer::recordLightPassCommandBuffer() {
 	vkCmdEndRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame]);
 }
 
-void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices) {
+void Renderer::recordShadowMapCommandBuffer(std::vector<ObjectInstance>& objDescs) {
 	auto& lights = m_scene->getLights();
 
 	int32_t directionalCount = 0;
@@ -878,6 +888,7 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 					0, sizeof(glm::mat4),
 					&lightViewProj
 				);
+				/*
 				int32_t index = 0;
 				for (const auto& [key, value] : modelToMatrixIndices) {
 					for (int32_t i = 0; i < m_modelList[key].mesh.size(); i++) {
@@ -885,6 +896,29 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 						m_meshList[m_modelList[key].mesh[i]]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], value.size(), startIndex);
 						index += value.size();
 					}
+				}
+				*/
+
+				int32_t currentMeshIdx = -1;
+				uint32_t firstInstance = 0;
+				uint32_t instanceCount = 0;
+
+				for (uint32_t i = 0; i < objDescs.size(); i++) {
+					int32_t meshIdx = objDescs[i].meshIndex;
+					if (meshIdx != currentMeshIdx) {
+						if (instanceCount > 0 && currentMeshIdx >= 0) {
+							m_meshList[currentMeshIdx]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], instanceCount, firstInstance);
+						}
+						currentMeshIdx = meshIdx;
+						firstInstance = i;
+						instanceCount = 1;
+					}
+					else {
+						instanceCount++;
+					}
+				}
+				if (instanceCount > 0 && currentMeshIdx >= 0) {
+					m_meshList[currentMeshIdx]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], instanceCount, firstInstance);
 				}
 				light.shadowMapIndex = shadowMapIndex;
 				lightMatrices[shadowMapIndex + j].mat = lightViewProj;
@@ -916,6 +950,7 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 				0, sizeof(glm::mat4),
 				&lightViewProj
 			);
+			/*
 			int32_t index = 0;
 			for (const auto& [key, value] : modelToMatrixIndices) {
 				for (int32_t i = 0; i < m_modelList[key].mesh.size(); i++) {
@@ -924,6 +959,32 @@ void Renderer::recordShadowMapCommandBuffer(std::unordered_map<int32_t, std::vec
 					index += value.size();
 				}
 			}
+			*/
+
+			int32_t currentMeshIdx = -1;
+			uint32_t firstInstance = 0;
+			uint32_t instanceCount = 0;
+
+			for (uint32_t i = 0; i < objDescs.size(); i++) {
+				int32_t meshIdx = objDescs[i].meshIndex;
+				if (meshIdx != currentMeshIdx) {
+					if (instanceCount > 0 && currentMeshIdx >= 0) {
+						m_meshList[currentMeshIdx]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], instanceCount, firstInstance);
+					}
+					currentMeshIdx = meshIdx;
+					firstInstance = i;
+					instanceCount = 1;
+				}
+				else {
+					instanceCount++;
+				}
+			}
+			if (instanceCount > 0 && currentMeshIdx >= 0) {
+				m_meshList[currentMeshIdx]->drawInstance(m_commandBuffers->getCommandBuffers()[currentFrame], instanceCount, firstInstance);
+			}
+
+
+
 			light.shadowMapIndex = shadowMapIndex;
 			lightMatrices[shadowMapIndex].mat = lightViewProj;
 			vkCmdEndRenderPass(m_commandBuffers->getCommandBuffers()[currentFrame]);
@@ -988,24 +1049,19 @@ void Renderer::transferImageLayout( VkCommandBuffer cmd, Texture* texture, VkIma
 void Renderer::recordRayTracingCommandBuffer() {
 	VkCommandBuffer cmd = m_commandBuffers->getCommandBuffers()[currentFrame];
 
-	transferImageLayout(cmd,
-		m_rtReflectionTextures[currentFrame].get(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-		VK_IMAGE_LAYOUT_GENERAL,
-		VK_ACCESS_SHADER_READ_BIT,
-		VK_ACCESS_SHADER_WRITE_BIT,
-		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-		VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
+	
 
 	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipeline->getPipeline());
 
 	VkDescriptorSet sets[] = {
 		m_globlaDescSets[currentFrame]->getDescriptorSet(),  // set=0 (camera)
 		m_rtDescSets[currentFrame]->getDescriptorSet(),       // set=1 (outputImage + TLAS)
-		m_bindlessDescSets[currentFrame]->getDescriptorSet(), // set=2 (bindless)
+		m_objectMaterialDescSets[currentFrame]->getDescriptorSet(), // set=2 (object material)
+		m_bindlessDescSets[currentFrame]->getDescriptorSet(), // set=3 (bindless)
+		m_attachmentDescSets[currentFrame]->getDescriptorSet() // set=4 (gbuffer)
 	};
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-		m_rtPipeline->getPipelineLayout(), 0, 3, sets, 0, nullptr);
+		m_rtPipeline->getPipelineLayout(), 0, 5, sets, 0, nullptr);
 
 
 	VkStridedDeviceAddressRegionKHR emptyRegion{};
@@ -1018,15 +1074,6 @@ void Renderer::recordRayTracingCommandBuffer() {
 		m_extent.width,
 		m_extent.height,
 		1);
-
-	transferImageLayout(cmd,
-		m_rtReflectionTextures[currentFrame].get(),
-		VK_IMAGE_LAYOUT_GENERAL,
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-		VK_ACCESS_SHADER_WRITE_BIT,
-		VK_ACCESS_SHADER_READ_BIT,
-		VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
-		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 }
 
 
@@ -1136,13 +1183,38 @@ glm::mat4 Renderer::computePointLightMatrix(Light& light, uint32_t faceIndex) {
 	return proj * view;
 }
 
-void Renderer::updateTLAS(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices, std::vector<ModelBuffer>& modelBuffers) {
+//void Renderer::updateTLAS(std::unordered_map<int32_t, std::vector<int32_t>>& modelToMatrixIndices, std::vector<ModelBuffer>& modelBuffers) {
+void Renderer::updateTLAS(std::vector<ObjectInstance>& objDescs, std::vector<ModelBuffer>& modelBuffers) {
 
-	if (modelToMatrixIndices.size() > 0) {
+	/*if (modelToMatrixIndices.size() > 0) {
 		m_tlas[currentFrame]->rebuild(m_blasList, m_modelList, modelToMatrixIndices, modelBuffers, m_scene->getObjects());
 		m_rtDescSets[currentFrame]->updateTLAS(m_tlas[currentFrame]->getHandle());
 	}
 	else {
 		m_rtDescSets[currentFrame]->updateTLAS(m_emptyTLAS->getHandle());
+	}*/
+
+	if (objDescs.size() > 0) {
+		m_tlas[currentFrame]->rebuild(m_blasList, modelBuffers, objDescs);
+		m_rtDescSets[currentFrame]->updateTLAS(m_tlas[currentFrame]->getHandle());
 	}
+	else {
+		m_rtDescSets[currentFrame]->updateTLAS(m_emptyTLAS->getHandle());
+	}
+}
+
+
+void Renderer::printObjectInstances(const std::vector<ObjectInstance>& instances) {
+	std::cout << "========== ObjectInstance List ==========" << std::endl;
+	for (size_t i = 0; i < instances.size(); ++i) {
+		const auto& inst = instances[i];
+		std::cout << "[" << std::setw(3) << i << "] "
+			<< "vertexAddr: 0x" << std::hex << inst.vertexAddress << std::dec << ", "
+			<< "indexAddr:  0x" << std::hex << inst.indexAddress << std::dec << ", "
+			<< "modelMatIdx: " << inst.modelMatrixIndex << ", "
+			<< "materialIdx: " << inst.materialIndex << ", "
+			<< "meshIdx: " << inst.meshIndex
+			<< std::endl;
+	}
+	std::cout << "==========================================" << std::endl;
 }

@@ -306,6 +306,7 @@ void VulkanContext::createLogicalDevice() {
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.sampleRateShading = VK_TRUE;
+	deviceFeatures.shaderInt64 = VK_TRUE;
 
 	// Ray Tracing feature chain
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};

@@ -35,6 +35,7 @@
 #include <string>
 #include <glm/gtc/type_ptr.hpp>
 #include <functional>
+#include <iomanip>
 
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -201,9 +202,13 @@ struct alignas(16) LightBuffer {
 	int lightCount;
 };
 
-struct alignas(8) ObjectInstance {
-	int modelMatrixIndex;
-	int materialIndex;
+struct alignas(16) ObjectInstance {
+	uint64_t vertexAddress = 0;
+	uint64_t indexAddress = 0;
+	int modelMatrixIndex = 0;
+	int materialIndex = 0;
+	int meshIndex = 0;
+	int pad0 = 0;
 };
 
 struct alignas(16) ModelBuffer {
@@ -233,6 +238,11 @@ struct Camera {
 
 struct alignas(16) LightMatrix {
 	glm::mat4 mat;
+};
+
+struct alignas(16) RenderOptions {
+	int useRTReflection = 0;
+	glm::vec3 pad = glm::vec3(0.0f);
 };
 
 void printMaterial(const Material& mat);

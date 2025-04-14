@@ -1,5 +1,6 @@
 #version 460
 #extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
@@ -19,8 +20,12 @@ layout(set = 0, binding = 0) uniform CameraBuffer {
 } camera;
 
 struct ObjectInstance {
+    uint64_t vectexIndex;
+    uint64_t indexIndex;
     int modelMatrixIndex;
     int materialIndex;
+    int meshIndex;
+    int pad;
 };
 
 layout(std430, set = 1, binding = 0) readonly buffer ObjectInstances {

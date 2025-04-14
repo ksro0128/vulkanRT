@@ -12,7 +12,8 @@ public:
 		VulkanContext* context,
 		DescriptorSetLayout* layout,
 		UniformBuffer* cameraBuffer,
-		StorageBuffer* lightBuffer
+		StorageBuffer* lightBuffer, 
+		UniformBuffer* renderOptionsBuffer
 	);
 
 	static std::unique_ptr<DescriptorSet> createObjectMaterialDescriptorSet(
@@ -61,7 +62,7 @@ private:
 	VkDescriptorSet m_descriptorSet;
 
 	void initGlobal(VulkanContext* context, DescriptorSetLayout* layout, 
-		UniformBuffer* cameraBuffer, StorageBuffer* lightBuffer);
+		UniformBuffer* cameraBuffer, StorageBuffer* lightBuffer, UniformBuffer* renderOptionsBuffer);
 	void initObjectMaterial(VulkanContext* context, DescriptorSetLayout* layout,
 		StorageBuffer* objectInstanceBuffer);
 	void initBindless(VulkanContext* context, DescriptorSetLayout* layout, StorageBuffer* modelBuffer, StorageBuffer* materialBuffer,

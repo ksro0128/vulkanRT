@@ -39,6 +39,14 @@ void DescriptorSetLayout::initGlobal(VulkanContext* context) {
 	lightBinding.pImmutableSamplers = nullptr;
 	bindings.push_back(lightBinding);
 
+	VkDescriptorSetLayoutBinding optionsBinding{};
+	optionsBinding.binding = 2;
+	optionsBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	optionsBinding.descriptorCount = 1;
+	optionsBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+	optionsBinding.pImmutableSamplers = nullptr;
+	bindings.push_back(optionsBinding);
+
 	VkDescriptorSetLayoutCreateInfo layoutInfo{};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -62,7 +70,8 @@ void DescriptorSetLayout::initObjectMaterial(VulkanContext* context) {
 	instanceBinding.binding = 0;
 	instanceBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	instanceBinding.descriptorCount = 1;
-	instanceBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+	instanceBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | 
+		VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 	instanceBinding.pImmutableSamplers = nullptr;
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo{};
@@ -90,7 +99,7 @@ void DescriptorSetLayout::initBindless(VulkanContext* context) {
 	modelBinding.binding = 0;
 	modelBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	modelBinding.descriptorCount = 1;
-	modelBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	modelBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 	modelBinding.pImmutableSamplers = nullptr;
 	bindings.push_back(modelBinding);
 
@@ -149,7 +158,7 @@ void DescriptorSetLayout::initAttachment(VulkanContext* context) {
 		binding.binding = i;
 		binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		binding.descriptorCount = 1;
-		binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR;
 		binding.pImmutableSamplers = nullptr;
 		bindings.push_back(binding);
 	}
@@ -216,13 +225,13 @@ void DescriptorSetLayout::initRayTracing(VulkanContext* context) {
 	bindings[0].binding = 0;
 	bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 	bindings[0].descriptorCount = 1;
-	bindings[0].stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+	bindings[0].stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_FRAGMENT_BIT;
 	bindings[0].pImmutableSamplers = nullptr;
 
 	bindings[1].binding = 1;
 	bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 	bindings[1].descriptorCount = 1;
-	bindings[1].stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+	bindings[1].stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 	bindings[1].pImmutableSamplers = nullptr;
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo{};
