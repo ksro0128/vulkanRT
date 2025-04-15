@@ -171,6 +171,9 @@ void Renderer::init(GLFWwindow* window) {
 		m_materialBuffers[0]->updateStorageBuffer(&m_materialList[0], sizeof(Material) * m_materialList.size());
 		m_materialBuffers[1]->updateStorageBuffer(&m_materialList[0], sizeof(Material) * m_materialList.size());
 		};
+	m_guiRenderer->setRTMode = [this](int32_t mode) {
+		m_rtMode = mode;
+		};
 
 
 	m_scene = Scene::createScene(m_modelList.size(), m_materialList.size(), m_textureList.size());
@@ -337,12 +340,14 @@ void Renderer::render(float deltaTime) {
 	if (m_rtEnabled) {
 		RenderOptions renderOptions;
 		renderOptions.useRTReflection = 1;
+		renderOptions.rtMode = m_rtMode;
 		m_renderOptionsBuffers[currentFrame]->updateUniformBuffer(&renderOptions, sizeof(RenderOptions));
 		recordRayTracingCommandBuffer();
 	}
 	else {
 		RenderOptions renderOptions;
 		renderOptions.useRTReflection = 0;
+		renderOptions.rtMode = m_rtMode;
 		m_renderOptionsBuffers[currentFrame]->updateUniformBuffer(&renderOptions, sizeof(RenderOptions));
 	}
 	

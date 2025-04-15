@@ -33,7 +33,8 @@ layout(set = 0, binding = 1) readonly buffer LightBuffer {
 
 layout(set = 0, binding = 2) uniform RenderOptions {
     int useRTReflection;
-    vec3 pad;
+    int rtMode;
+    vec2 pad;
 } renderOptions;
 
 layout(set = 1, binding = 0) uniform sampler2D gPosition;
@@ -268,8 +269,7 @@ void main() {
     if (renderOptions.useRTReflection == 1) {
         vec3 F0 = mix(vec3(0.04), albedo, metallic);
         vec3 F = fresnelSchlick(max(dot(N, V), 0.0), F0);
-        float reflectance = 1.0 - roughness;
-        finalColor += rtColor.rgb * F * reflectance;
+        finalColor += rtColor.rgb * F;
     }
 
     outColor = vec4(clamp(finalColor, 0.0, 1.0), 1.0);

@@ -40,6 +40,7 @@ private:
 
 	// pipeline switch
 	bool m_rtEnabled = false;
+	int m_rtMode = 0;
 
 	// resources list
 	std::vector<std::unique_ptr<Mesh>> m_meshList;

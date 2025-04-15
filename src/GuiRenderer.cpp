@@ -217,6 +217,13 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 	}
 
 
+	const char* rtModes[] = { "1-Bounce", "2-Bounce", "Glossy (1-Bounce)" , "Glossy (1-Bounce + 4 sample)"};
+	static int currentRTMode = 0;
+	ImGui::Text("RT Reflection Mode");
+	if (ImGui::Combo("##RTModeSelector", &currentRTMode, rtModes, IM_ARRAYSIZE(rtModes))) {
+		if (setRTMode) setRTMode(currentRTMode);
+	}
+
 	if (!m_benchmarkRunning && ImGui::Button("Start Benchmark")) {
 		m_benchmarkRunning = true;
 		m_benchmarkTime = 0.0f;
