@@ -82,42 +82,9 @@ void main() {
 
     Material mat = materials[inst.materialIndex];
 
+    vec3 baseColor = (mat.albedoTexIndex == -1)
+        ? mat.baseColor.rgb
+        : texture(textures[nonuniformEXT(mat.albedoTexIndex)], uv).rgb;
 
-    if (payload.bounce == 0) {
-
-        mat4 model = modelMatrices[inst.modelMatrixIndex];
-        vec3 localHitPos = v0.pos * w + v1.pos * u + v2.pos * v;
-        vec3 hitPos = (model * vec4(localHitPos, 1.0)).xyz;
-
-        vec3 localNormal = normalize(v0.normal * w + v1.normal * u + v2.normal * v);
-        mat3 normalMatrix = transpose(inverse(mat3(model)));
-        vec3 worldNormal = normalize(normalMatrix * localNormal);
-
-        vec3 viewDir = normalize(hitPos - gl_WorldRayOriginEXT);
-        vec3 reflectDir = normalize(reflect(viewDir, worldNormal));
-        
-        payload.bounce = 1;
-        payload.color = vec3(0.0);
-
-        traceRayEXT(topLevelAS,
-            gl_RayFlagsOpaqueEXT,
-            0xFF,
-            0, 0, 0,
-            hitPos + reflectDir * 0.05,
-            0.001,
-            reflectDir,
-            10000.0,
-            0);
-
-        vec3 base = (mat.albedoTexIndex == -1)
-            ? mat.baseColor.rgb
-            : texture(textures[nonuniformEXT(mat.albedoTexIndex)], uv).rgb;
-
-        payload.color = mix(base, payload.color, 0.2);
-    }
-    else {
-        payload.color = (mat.albedoTexIndex == -1)
-            ? mat.baseColor.rgb
-            : texture(textures[nonuniformEXT(mat.albedoTexIndex)], uv).rgb;
-    }
+    payload.color = baseColor;
 }
