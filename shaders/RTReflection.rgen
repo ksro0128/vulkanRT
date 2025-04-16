@@ -36,26 +36,58 @@ float hash1(vec2 p) {
     return fract(p.x * p.y);
 }
 
-vec3 importanceSampleGGX(vec2 Xi, float roughness, vec3 N) {
-    float a = roughness * roughness;
-
-    float phi = 2.0 * 3.1415926535 * Xi.x;
-    float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y));
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-
-    vec3 H = vec3(
-        cos(phi) * sinTheta,
-        sin(phi) * sinTheta,
-        cosTheta
-    );
-
-    vec3 up = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
-    vec3 T = normalize(cross(up, N));
-    vec3 B = cross(N, T);
-
-    return normalize(T * H.x + B * H.y + N * H.z);
+float vdcSequence(uint bits) 
+{
+    bits = (bits << 16u) | (bits >> 16u);
+    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+    return float(bits) * 2.3283064365386963e-10;
 }
 
+vec2 hammersleySequence(uint i, uint N)
+{
+    return vec2(float(i) / float(N), vdcSequence(i));
+}
+
+vec3 importanceSampleGGX(vec2 Xi, vec3 N, float roughness)
+{
+    float alpha = roughness * roughness;
+    float alpha2 = alpha * alpha;
+	
+    float phi = 2.0 * 3.1415926535 * Xi.x;
+    float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (alpha2 - 1.0) * Xi.y));
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+	
+    vec3 H;
+    H.x = cos(phi) * sinTheta;
+    H.y = sin(phi) * sinTheta;
+    H.z = cosTheta;
+	
+    vec3 up        = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+    vec3 tangent   = normalize(cross(up, N));
+    vec3 bitangent = cross(N, tangent);
+	
+    vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+    return normalize(sampleVec);
+}
+
+float distributionGGX(vec3 N, vec3 H, float roughness) {
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+    float denominator = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / (3.14159265359 * denominator * denominator);
+}
+
+float ggxPdf(vec3 N, vec3 H, vec3 V, float roughness) {
+    float D = distributionGGX(N, H, roughness);
+    float NdotH = max(dot(N, H), 0.0);
+    float VdotH = max(dot(V, H), 0.0);
+    return D * NdotH / (4.0 * VdotH + 1e-5); // pdf = D(h) * (N⋅H) / (4 * (V⋅H))
+}
 
 void main() {
     vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
@@ -65,50 +97,48 @@ void main() {
     vec3 worldPos = texture(gPosition, uv).xyz;
     vec3 worldNormal = normalize(texture(gNormal, uv).xyz);
     float roughness = texture(gPBR, uv).g;
+    vec3 viewDir = normalize(camera.camPos - worldPos);
 
-    vec3 viewDir = normalize(worldPos - camera.camPos);
-    vec3 perfectReflect = normalize(reflect(viewDir, worldNormal));
-    vec3 reflectDir = perfectReflect;
-    
     payload.color = vec3(0.0);
-
-    const int sampleCount = 4;
+    
+    int sampleCount = 4;
     vec3 accumulatedColor = vec3(0.0);
+    float accumulatedWeight = 0.0;
+    vec3 sampleDir = vec3(0.0);
+
+    if (roughness < 0.04) {
+        roughness = 0.04;
+        sampleCount = 1;
+    }
+
     for (int i = 0; i < sampleCount; ++i) {
-        vec2 seed = uv + vec2(i * 0.17, i * 0.31);
-
-        vec3 rand = normalize(vec3(
-            hash1(seed),
-            hash1(seed + 0.13),
-            hash1(seed + 0.37)
-        ));
-
-        float spread = pow(roughness, 2.0);
-        vec3 perturbed = rand;
-        vec3 sampleDir = normalize(mix(perfectReflect, perturbed, spread));
-
-        vec2 Xi = vec2(hash1(seed), hash1(seed + 0.37));
-
-        vec3 H = importanceSampleGGX(Xi, roughness, worldNormal);
+        vec2 Xi = hammersleySequence(i, sampleCount);
+        vec3 H = importanceSampleGGX(Xi, worldNormal, roughness);
         sampleDir = normalize(reflect(-viewDir, H));
+        if (dot(worldNormal, sampleDir) <= 0.0) {
+            continue;
+        }
+        float pdf = ggxPdf(worldNormal, H, viewDir, roughness);
+        if (pdf < 1e-5) {
+            continue;
+        }
 
         payload.color = vec3(0.0);
         payload.bounce = 1;
-
         traceRayEXT(
             topLevelAS,
             gl_RayFlagsOpaqueEXT,
             0xFF,
             0, 0, 0,
-            worldPos + H * 0.05,
+            worldPos + sampleDir * 0.05,
             0.001,
-            H,
+            sampleDir,
             10000.0,
             0
         );
-        accumulatedColor += payload.color;
+        accumulatedColor += payload.color / pdf;
+        accumulatedWeight += 1.0 / pdf;
     }
-    payload.color = accumulatedColor / float(sampleCount);
+    payload.color = accumulatedColor / accumulatedWeight;
     imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), vec4(payload.color, 1.0));
-    
 }

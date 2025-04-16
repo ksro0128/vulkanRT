@@ -47,8 +47,8 @@ void Renderer::init(GLFWwindow* window) {
 	
 	
 	
-	 loadModel("./assets/models/knight.glb");
 	 loadModel("./assets/nodecal.glb");
+	 loadModel("./assets/models/knight.glb");
 
 	// descriptorset layout
 	m_globalLayout = DescriptorSetLayout::createGlobalDescriptorSetLayout(m_context.get());

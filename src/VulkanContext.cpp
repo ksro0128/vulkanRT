@@ -381,10 +381,10 @@ void VulkanContext::createDescriptorPool() {
 
 	// Set0 - Global
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = MAX_FRAMES_IN_FLIGHT * 100;
+	poolSizes[0].descriptorCount = MAX_FRAMES_IN_FLIGHT * 1000;
 
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT * 100;
+	poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT * 1000;
 
 	// Set1 - Object, Material
 	poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -392,7 +392,7 @@ void VulkanContext::createDescriptorPool() {
 
 	// Set2 - Texture
 	poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[3].descriptorCount = MAX_TEXTURE_COUNT;
+	poolSizes[3].descriptorCount = MAX_TEXTURE_COUNT * 10;
 
 	VkDescriptorPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
