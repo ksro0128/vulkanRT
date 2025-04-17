@@ -50,7 +50,7 @@ layout(set = 2, binding = 1) uniform sampler2D shadowMaps[7];
 
 layout(set = 2, binding = 2) uniform samplerCube shadowCubeMap;
 
-layout(set = 3, binding = 0, rgba16f) uniform image2D rtOutput;
+layout(set = 3, binding = 0, rgba16f) uniform readonly image2D rtOutput;
 
 
 // Fresnel-Schlick Approximation
@@ -268,7 +268,7 @@ void main() {
 
     if (renderOptions.useRTReflection == 1) {
         vec3 F0 = mix(vec3(0.04), albedo, metallic);
-        vec3 F = fresnelSchlick(max(dot(N, V), 0.0), F0);
+        vec3 F = fresnelSchlick(max(dot(N, V), 0.0), F0);		
         finalColor += rtColor.rgb * F;
     }
 

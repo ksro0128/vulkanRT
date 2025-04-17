@@ -32,14 +32,14 @@ void Scene::init(uint32_t maxModelIndex, uint32_t maxMaterialIndex, uint32_t max
 	// 1 - cube
 	// 2 - sphere
 
-	/*
+	
 	{
 		Object obj;
 		obj.modelIndex = 2;
 		obj.position = glm::vec3(0.0f, 0.0f, 0.0f);
 		m_objects.push_back(obj);
 	}
-	*/
+	
 	/*{
 		Object obj;
 		obj.modelIndex = 0;
@@ -52,28 +52,28 @@ void Scene::init(uint32_t maxModelIndex, uint32_t maxMaterialIndex, uint32_t max
 
 	// sponza + knight
 
-	{
-		Object obj;
-		obj.modelIndex = 3;
-		obj.position = glm::vec3(0.0f, 0.0f, 0.0f);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 4;
-		obj.position = glm::vec3(0.0f, -4.0f, -3.0f);
-		obj.rotation = glm::vec3(90.0f, 0.0f, 0.0f);
-		obj.scale = glm::vec3(0.01f, 0.01f, 0.01f);
-		m_objects.push_back(obj);
-	}
-	{
-		Object obj;
-		obj.modelIndex = 4;
-		obj.position = glm::vec3(-1.5f, -4.0f, -3.0f);
-		obj.rotation = glm::vec3(90.0f, 0.0f, 0.0f);
-		obj.scale = glm::vec3(0.01f, 0.01f, 0.01f);
-		m_objects.push_back(obj);
-	}
+	// {
+	// 	Object obj;
+	// 	obj.modelIndex = 3;
+	// 	obj.position = glm::vec3(0.0f, 0.0f, 0.0f);
+	// 	m_objects.push_back(obj);
+	// }
+	// {
+	// 	Object obj;
+	// 	obj.modelIndex = 4;
+	// 	obj.position = glm::vec3(0.0f, -4.0f, -3.0f);
+	// 	obj.rotation = glm::vec3(90.0f, 0.0f, 0.0f);
+	// 	obj.scale = glm::vec3(0.01f, 0.01f, 0.01f);
+	// 	m_objects.push_back(obj);
+	// }
+	// {
+	// 	Object obj;
+	// 	obj.modelIndex = 4;
+	// 	obj.position = glm::vec3(-1.5f, -4.0f, -3.0f);
+	// 	obj.rotation = glm::vec3(90.0f, 0.0f, 0.0f);
+	// 	obj.scale = glm::vec3(0.01f, 0.01f, 0.01f);
+	// 	m_objects.push_back(obj);
+	// }
 	
 
 }

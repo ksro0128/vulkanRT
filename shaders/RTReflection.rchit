@@ -131,9 +131,59 @@ void main() {
 
     Material mat = materials[inst.materialIndex];
 
-    vec3 baseColor = (mat.albedoTexIndex == -1)
-        ? mat.baseColor.rgb
-        : texture(textures[nonuniformEXT(mat.albedoTexIndex)], uv).rgb;
+    // vec3 baseColor = (mat.albedoTexIndex == -1)
+    //     ? mat.baseColor.rgb
+    //     : texture(textures[nonuniformEXT(mat.albedoTexIndex)], uv).rgb;
 
-    payload.color = baseColor;
+    // payload.color = baseColor;
+
+
+
+
+	vec3 normal;
+	if (mat.normalTexIndex != -1) {
+		vec3 tangent = normalize(v0.tangent);
+		vec3 bitangent = normalize(cross(tangent, v0.normal));
+		mat3 TBN = mat3(tangent, bitangent, v0.normal);
+
+		vec3 sampledNormal = texture(textures[nonuniformEXT(mat.normalTexIndex)], uv).rgb;
+		sampledNormal = normalize(sampledNormal * 2.0 - 1.0);
+		normal = normalize(TBN * sampledNormal);
+	} else {
+		normal = normalize(cross(v1.pos - v0.pos, v2.pos - v0.pos));
+	}
+	vec3 albedo = (mat.albedoTexIndex == -1) ? mat.baseColor.rgb : texture(textures[nonuniformEXT(mat.albedoTexIndex)], uv).rgb;
+	float ao = (mat.aoTexIndex == -1) ? mat.ao : texture(textures[nonuniformEXT(mat.aoTexIndex)], uv).r;
+	float roughness = (mat.roughnessTexIndex == -1) ? mat.roughness : texture(textures[nonuniformEXT(mat.roughnessTexIndex)], uv).g;
+	float metallic = (mat.metallicTexIndex == -1) ? mat.metallic : texture(textures[nonuniformEXT(mat.metallicTexIndex)], uv).b;
+	vec3 N = normal;
+	vec3 worldPos = gl_WorldRayOriginEXT + gl_RayTmaxEXT * gl_WorldRayDirectionEXT;
+	vec3 V = normalize(-gl_WorldRayDirectionEXT);
+	float attenuation = 1.0;
+
+	Light light = lightInfo.lights[0];
+	vec3 L = normalize(-light.direction);
+
+	vec3 H = normalize(V + L);
+	vec3 F0 = mix(vec3(0.04), albedo, metallic);
+	vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+	float NDF = distributionGGX(N, H, roughness);
+	float G = geometrySmith(N, V, L, roughness);
+	
+	vec3 numerator = NDF * G * F;
+	float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
+	vec3 specular = numerator / denominator;
+
+	vec3 kS = F;
+	vec3 kD = vec3(1.0) - kS;
+	kD *= 1.0 - metallic;
+
+	float NdotL = max(dot(N, L), 0.01);
+	vec3 diffuse = kD * albedo / 3.14159265359;
+	vec3 radiance = light.intensity * light.color * attenuation * NdotL;
+
+	vec3 ambient = lightInfo.ambientColor * albedo * ao;
+
+	payload.color = ambient + (diffuse + specular) * radiance;
 }

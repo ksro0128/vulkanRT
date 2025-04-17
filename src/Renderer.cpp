@@ -41,14 +41,15 @@ void Renderer::init(GLFWwindow* window) {
 	 loadModel("./assets/models/Camera_01_1k.gltf/Camera_01_1k.gltf");
 	 */
 
-	//loadModel("./assets/main1_sponza/NewSponza_Main_glTF_003.gltf");
+	// loadModel("./assets/main1_sponza/NewSponza_Main_glTF_003.gltf");
+	loadModel("./assets/sponza.glb");
 	//loadModel("./main1_sponza/NewSponza_Main_glTF_003.gltf");
 	// loadModel("./pkg_a_curtains/NewSponza_Curtains_glTF.gltf");
 	
 	
 	
-	 loadModel("./assets/nodecal.glb");
-	 loadModel("./assets/models/knight.glb");
+	//  loadModel("./assets/nodecal.glb");
+	//  loadModel("./assets/models/knight.glb");
 
 	// descriptorset layout
 	m_globalLayout = DescriptorSetLayout::createGlobalDescriptorSetLayout(m_context.get());
