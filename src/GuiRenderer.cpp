@@ -249,7 +249,7 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 		ImGui::TextColored(ImVec4(0.8f, 0.8f, 1.0f, 1.0f), "Benchmark Running...");
 		ImGui::Text("Elapsed Time: %.2f / 10.00 sec", m_benchmarkTime);
 		ImGui::Text("Current FPS: %.2f", fpsNow);
-
+		ImGui::Text("Delta Time: %.4f", deltaTime);
 		if (m_benchmarkTime >= 10.0f) {
 			m_benchmarkRunning = false;
 		}

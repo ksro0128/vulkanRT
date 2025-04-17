@@ -22,6 +22,27 @@ struct RayPayload {
 
 layout(location = 0) rayPayloadInEXT RayPayload payload;
 
+struct Light {
+    int type;
+    int shadowMapIndex;
+    int castsShadow;
+    float intensity;
+
+    vec3 color;
+    float range;
+
+    vec3 position;
+    float spotInnerAngle;
+
+    vec3 direction;
+    float spotOuterAngle;
+};
+
+layout(set = 0, binding = 1) readonly buffer LightBuffer {
+    Light lights[64];
+    vec3 ambientColor;
+    int lightCount;
+}lightInfo;
 
 layout(set = 1, binding = 1) uniform accelerationStructureEXT topLevelAS;
 
@@ -61,6 +82,34 @@ layout(std430, set = 3, binding = 1) readonly buffer MaterialBuffer {
 };
 
 layout(set = 3, binding = 2) uniform sampler2D textures[];
+
+
+// Fresnel-Schlick Approximation
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+// Normal Distribution Function (NDF)
+float distributionGGX(vec3 N, vec3 H, float roughness) {
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+    float denominator = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / (3.14159265359 * denominator * denominator);
+}
+
+// Geometry Function
+float geometrySchlickGGX(float NdotV, float roughness) {
+    float k = (roughness + 1.0) * (roughness + 1.0) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    return geometrySchlickGGX(NdotV, roughness) * geometrySchlickGGX(NdotL, roughness);
+}
 
 
 hitAttributeEXT vec2 attribs;

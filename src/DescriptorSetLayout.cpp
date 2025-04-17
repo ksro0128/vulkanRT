@@ -35,7 +35,7 @@ void DescriptorSetLayout::initGlobal(VulkanContext* context) {
 	lightBinding.binding = 1;
 	lightBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	lightBinding.descriptorCount = 1;
-	lightBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	lightBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 	lightBinding.pImmutableSamplers = nullptr;
 	bindings.push_back(lightBinding);
 
