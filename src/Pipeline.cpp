@@ -129,7 +129,7 @@ void Pipeline::initGbuffer(VulkanContext* context, RenderPass* renderPass, std::
 	depthStencil.stencilTestEnable = VK_FALSE;
 
 	// Color blend
-	std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments(4);
+	std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments(5);
 	for (auto& attachment : colorBlendAttachments) {
 		attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
 			VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;

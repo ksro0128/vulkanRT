@@ -22,12 +22,14 @@ public:
 	void createPositionDescriptorSet(std::array<Texture*, 2> textures);
 	void createNormalDescriptorSet(std::array<Texture*, 2> textures);
 	void createPbrDescriptorSet(std::array<Texture*, 2> textures);
+	void createEmissiveDescriptorSet(std::array<Texture*, 2> textures);
     ImVec2 getViewportSize() const { return m_viewportSize; }
 	bool isBenchmarkRunning() const { return m_benchmarkRunning; }
 
 	std::function<bool()> getRTEnabled;
 	std::function<void(bool)> setRTEnabled;
 	std::function<void(const Material&)> addMaterial;
+	std::function<Material&(int32_t)> getMaterial;
 	std::function<void(int32_t)> setRTMode;
 
 private:
@@ -49,6 +51,8 @@ private:
 	std::vector<VkDescriptorSet> m_positionDescriptorSet;
 	std::vector<VkDescriptorSet> m_normalDescriptorSet;
 	std::vector<VkDescriptorSet> m_pbrDescriptorSet;
+	std::vector<VkDescriptorSet> m_emissiveDescriptorSet;
+
     bool m_dockLayoutBuilt;
     ImVec2 m_viewportSize;
 

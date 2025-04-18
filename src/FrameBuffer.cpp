@@ -21,11 +21,12 @@ std::unique_ptr<FrameBuffer> FrameBuffer::createGbufferFrameBuffer(VulkanContext
 void FrameBuffer::initGbuffer(VulkanContext* context, RenderPass* renderPass, GbufferAttachment& gBufferAttachment, VkExtent2D extent) {
     this->context = context;
 
-    std::array<VkImageView, 5> attachments = {
+    std::array<VkImageView, 6> attachments = {
         gBufferAttachment.position->getImageView(),
         gBufferAttachment.normal->getImageView(),
         gBufferAttachment.albedo->getImageView(),
         gBufferAttachment.pbr->getImageView(),
+		gBufferAttachment.emissive->getImageView(),
         gBufferAttachment.depth->getImageView()
     };
 

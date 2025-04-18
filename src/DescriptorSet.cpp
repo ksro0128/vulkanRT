@@ -7,6 +7,10 @@ DescriptorSet::~DescriptorSet() {
 void DescriptorSet::cleanup() {
 	std::cout << "DescriptorSet::cleanup" << std::endl;
 
+	if (m_descriptorSet != VK_NULL_HANDLE) {
+		vkFreeDescriptorSets(context->getDevice(), context->getDescriptorPool(), 1, &m_descriptorSet);
+		m_descriptorSet = VK_NULL_HANDLE;
+	}
 }
 
 std::unique_ptr<DescriptorSet> DescriptorSet::createGlobalDescriptorSet(VulkanContext* context, DescriptorSetLayout* layout, 
@@ -234,7 +238,7 @@ void DescriptorSet::initAttachment(VulkanContext* context, DescriptorSetLayout* 
 		throw std::runtime_error("failed to allocate attachment descriptor set!");
 	}
 
-	std::array<VkDescriptorImageInfo, 4> imageInfos{};
+	std::array<VkDescriptorImageInfo, 5> imageInfos{};
 
 	imageInfos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	imageInfos[0].imageView = gbufferAttachment.position->getImageView();
@@ -252,8 +256,12 @@ void DescriptorSet::initAttachment(VulkanContext* context, DescriptorSetLayout* 
 	imageInfos[3].imageView = gbufferAttachment.pbr->getImageView();
 	imageInfos[3].sampler = gbufferAttachment.pbr->getSampler();
 
-	std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
-	for (uint32_t i = 0; i < 4; ++i) {
+	imageInfos[4].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfos[4].imageView = gbufferAttachment.emissive->getImageView();
+	imageInfos[4].sampler = gbufferAttachment.emissive->getSampler();
+
+	std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
+	for (uint32_t i = 0; i < 5; ++i) {
 		descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[i].dstSet = m_descriptorSet;
 		descriptorWrites[i].dstBinding = i;

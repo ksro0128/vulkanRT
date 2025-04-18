@@ -174,5 +174,6 @@ void main() {
         return;
     }
     vec3 outCol = accumulatedColor / float(validSamples);
-    imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), vec4(outCol, 1.0));
+    // imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), vec4(outCol, 1.0));
+    imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), vec4(payload.color, 1.0));
 }

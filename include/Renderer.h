@@ -105,7 +105,8 @@ private:
 	std::unique_ptr<Pipeline> m_gbufferPipeline;
 	std::unique_ptr<Pipeline> m_lightPassPipeline;
 	std::unique_ptr<Pipeline> m_shadowMapPipeline;
-	std::unique_ptr<RayTracingPipeline> m_rtPipeline;
+	std::unique_ptr<RayTracingPipeline> m_reflectionPipeline;
+	std::unique_ptr<RayTracingPipeline> m_giPipeline;
 
 	// command buffer
 	std::unique_ptr<CommandBuffers> m_commandBuffers;
@@ -145,7 +146,8 @@ private:
 	void recordLightPassCommandBuffer();
 	void recordImGuiCommandBuffer(uint32_t imageIndex, float deltaTime);
 	void recordShadowMapCommandBuffer(std::vector<ObjectInstance>& objDescs);
-	void recordRayTracingCommandBuffer();
+	void recordReflectionCommandBuffer();
+	void recordGICmdBuffer();
 
 	void printAllResources();
 	void printObjectInstances(const std::vector<ObjectInstance>& instances);

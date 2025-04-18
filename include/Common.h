@@ -242,7 +242,7 @@ struct alignas(16) LightMatrix {
 
 struct alignas(16) RenderOptions {
 	int useRTReflection = 0;
-	int rtMode = 0;// 1: 1-bound mirror, 2: 2-bound mirror, 3: 1-bound glossy
+	int rtMode = 0; // 0: off, 1: reflection, 2: gi
 	glm::vec2 pad = glm::vec2(0.0f);
 };
 

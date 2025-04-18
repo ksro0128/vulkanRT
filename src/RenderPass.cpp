@@ -21,7 +21,7 @@ std::unique_ptr<RenderPass> RenderPass::createGbufferRenderPass(VulkanContext* c
 void RenderPass::initGbuffer(VulkanContext* context) {
 	this->context = context;
 
-	std::vector<VkAttachmentDescription> attachments(5);
+	std::vector<VkAttachmentDescription> attachments(6);
 
 	// Position
 	attachments[0].format = VK_FORMAT_R16G16B16A16_SFLOAT;
@@ -45,25 +45,28 @@ void RenderPass::initGbuffer(VulkanContext* context) {
 	attachments[3] = attachments[0];
 	attachments[3].format = VK_FORMAT_R8G8B8A8_UNORM;
 
+	attachments[4] = attachments[0];
+	attachments[4].format = VK_FORMAT_R8G8B8A8_UNORM;
+
 	// Depth
-	attachments[4].format = VK_FORMAT_D32_SFLOAT;
-	attachments[4].samples = VK_SAMPLE_COUNT_1_BIT;
-	attachments[4].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachments[4].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachments[4].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	attachments[4].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachments[4].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments[4].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	attachments[5].format = VK_FORMAT_D32_SFLOAT;
+	attachments[5].samples = VK_SAMPLE_COUNT_1_BIT;
+	attachments[5].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachments[5].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	attachments[5].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	attachments[5].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	attachments[5].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	attachments[5].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	// Attachment References
-	std::array<VkAttachmentReference, 4> colorRefs{};
+	std::array<VkAttachmentReference, 5> colorRefs{};
 	for (uint32_t i = 0; i < colorRefs.size(); ++i) {
 		colorRefs[i].attachment = i;
 		colorRefs[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	}
 
 	VkAttachmentReference depthRef{};
-	depthRef.attachment = 4;
+	depthRef.attachment = 5;
 	depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	// Subpass

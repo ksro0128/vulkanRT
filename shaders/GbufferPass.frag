@@ -11,6 +11,7 @@ layout(location = 0) out vec4 outPosition;
 layout(location = 1) out vec4 outNormal;
 layout(location = 2) out vec4 outAlbedo;
 layout(location = 3) out vec4 outPBR;
+layout(location = 4) out vec4 outEmissive;
 
 struct Material {
     vec4 baseColor;
@@ -61,10 +62,16 @@ void main() {
         normal = normalize(fragTBN * tangentNormal);
     }
 
+    vec3 emissive = mat.emissiveFactor;
+    if (mat.emissiveTexIndex >= 0) {
+        emissive *= texture(textures[nonuniformEXT(mat.emissiveTexIndex)], fragTexCoord).rgb;
+    }
+
     // G-buffer outputs
     outPosition = vec4(fragWorldPos, 1.0);
     // outNormal   = vec4(normal, float(materialIndex));
 	outNormal   = vec4(normal, 1.0);
     outAlbedo   = vec4(albedo, 1.0);
     outPBR      = vec4(ao, roughness, metallic, 1.0);
+    outEmissive = vec4(emissive, 1.0);
 }

@@ -42,14 +42,16 @@ void Renderer::init(GLFWwindow* window) {
 	 */
 
 	// loadModel("./assets/main1_sponza/NewSponza_Main_glTF_003.gltf");
-	loadModel("./assets/sponza.glb");
+	//loadModel("./assets/sponza.glb");
 	//loadModel("./main1_sponza/NewSponza_Main_glTF_003.gltf");
 	// loadModel("./pkg_a_curtains/NewSponza_Curtains_glTF.gltf");
 	
 	
 	
-	//  loadModel("./assets/nodecal.glb");
-	//  loadModel("./assets/models/knight.glb");
+	loadModel("./assets/nodecal.glb");
+	loadModel("./assets/models/knight.glb");
+	//loadModel("./assets/models/cornell_box-_original.glb");
+	//loadModel("./assets/models/cornell.gltf");
 
 	// descriptorset layout
 	m_globalLayout = DescriptorSetLayout::createGlobalDescriptorSetLayout(m_context.get());
@@ -84,6 +86,7 @@ void Renderer::init(GLFWwindow* window) {
 		m_gbufferAttachments[i].normal = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 		m_gbufferAttachments[i].position = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 		m_gbufferAttachments[i].pbr = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+		m_gbufferAttachments[i].emissive = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 		m_gbufferAttachments[i].depth = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 	}
 
@@ -158,7 +161,8 @@ void Renderer::init(GLFWwindow* window) {
 	m_gbufferPipeline = Pipeline::createGbufferPipeline(m_context.get(), m_gbufferRenderPass.get(), {m_globalLayout.get(), m_objectMaterialLayout.get(), m_bindlessLayout.get()});
 	m_lightPassPipeline = Pipeline::createLightPassPipeline(m_context.get(), m_lightPassRenderPass.get(), { m_globalLayout.get(), m_attachmentLayout.get(), m_shadowLayout.get(), m_rayTracingLayout.get()});
 	m_shadowMapPipeline = Pipeline::createShadowMapPipeline(m_context.get(), m_shadowMapRenderPass.get(), { m_objectMaterialLayout.get(), m_bindlessLayout.get() });
-	m_rtPipeline = RayTracingPipeline::createRayTracingPipeline(m_context.get(), { m_globalLayout.get(), m_rayTracingLayout.get(), m_objectMaterialLayout.get(), m_bindlessLayout.get(), m_attachmentLayout.get() });
+	m_reflectionPipeline = RayTracingPipeline::createReflectionPipeline(m_context.get(), { m_globalLayout.get(), m_rayTracingLayout.get(), m_objectMaterialLayout.get(), m_bindlessLayout.get(), m_attachmentLayout.get() });
+	m_giPipeline = RayTracingPipeline::createGIPipeline(m_context.get(), { m_globalLayout.get(), m_rayTracingLayout.get(), m_objectMaterialLayout.get(), m_bindlessLayout.get(), m_attachmentLayout.get() });
 
 	printAllResources();
 
@@ -174,6 +178,15 @@ void Renderer::init(GLFWwindow* window) {
 		};
 	m_guiRenderer->setRTMode = [this](int32_t mode) {
 		m_rtMode = mode;
+		};
+	m_guiRenderer->getMaterial = [this](int32_t index) -> Material& {
+		m_materialBuffers[0]->updateStorageBuffer(&m_materialList[0], sizeof(Material)* m_materialList.size());
+		m_materialBuffers[1]->updateStorageBuffer(&m_materialList[0], sizeof(Material)* m_materialList.size());
+		if (index < 0 || index >= m_materialList.size()) {
+			std::cerr << "Material index out of range!" << std::endl;
+			return m_materialList[0];
+		}
+		return m_materialList[index];
 		};
 
 
@@ -242,6 +255,7 @@ void Renderer::init(GLFWwindow* window) {
 	m_guiRenderer->createPositionDescriptorSet({m_gbufferAttachments[0].position.get(), m_gbufferAttachments[1].position.get()});
 	m_guiRenderer->createNormalDescriptorSet({m_gbufferAttachments[0].normal.get(), m_gbufferAttachments[1].normal.get()});
 	m_guiRenderer->createPbrDescriptorSet({m_gbufferAttachments[0].pbr.get(), m_gbufferAttachments[1].pbr.get()});
+	m_guiRenderer->createEmissiveDescriptorSet({ m_gbufferAttachments[0].emissive.get(), m_gbufferAttachments[1].emissive.get() });
 }
 
 void Renderer::update(float deltaTime) {
@@ -328,6 +342,10 @@ void Renderer::render(float deltaTime) {
 		, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].emissive.get()
+		, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
 	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame],
 		m_rtReflectionTextures[currentFrame].get(),
@@ -343,7 +361,7 @@ void Renderer::render(float deltaTime) {
 		renderOptions.useRTReflection = 1;
 		renderOptions.rtMode = m_rtMode;
 		m_renderOptionsBuffers[currentFrame]->updateUniformBuffer(&renderOptions, sizeof(RenderOptions));
-		recordRayTracingCommandBuffer();
+		recordReflectionCommandBuffer();
 	}
 	else {
 		RenderOptions renderOptions;
@@ -351,6 +369,20 @@ void Renderer::render(float deltaTime) {
 		renderOptions.rtMode = m_rtMode;
 		m_renderOptionsBuffers[currentFrame]->updateUniformBuffer(&renderOptions, sizeof(RenderOptions));
 	}
+	if (m_rtMode == 0) {
+
+	}
+	else if (m_rtMode == 1) {
+		recordReflectionCommandBuffer();
+	}
+	else if (m_rtMode == 2) {
+		recordGICmdBuffer();
+	}
+	RenderOptions renderOptions;
+	renderOptions.useRTReflection = 0;
+	renderOptions.rtMode = m_rtMode;
+	m_renderOptionsBuffers[currentFrame]->updateUniformBuffer(&renderOptions, sizeof(RenderOptions));
+
 	
 	recordLightPassCommandBuffer();
 
@@ -396,6 +428,10 @@ void Renderer::render(float deltaTime) {
 		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].pbr.get(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+	transferImageLayout(m_commandBuffers->getCommandBuffers()[currentFrame], m_gbufferAttachments[currentFrame].emissive.get(),
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
@@ -507,6 +543,7 @@ void Renderer::recreateViewport(ImVec2 newExtent) {
 		m_gbufferAttachments[i].normal = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 		m_gbufferAttachments[i].position = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 		m_gbufferAttachments[i].pbr = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+		m_gbufferAttachments[i].emissive = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 		m_gbufferAttachments[i].depth = Texture::createAttachmentTexture(m_context.get(), m_extent.width, m_extent.height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 	}
 	
@@ -559,6 +596,7 @@ void Renderer::recreateViewport(ImVec2 newExtent) {
 	m_guiRenderer->createPositionDescriptorSet({m_gbufferAttachments[0].position.get(), m_gbufferAttachments[1].position.get()});
 	m_guiRenderer->createNormalDescriptorSet({m_gbufferAttachments[0].normal.get(), m_gbufferAttachments[1].normal.get()});
 	m_guiRenderer->createPbrDescriptorSet({m_gbufferAttachments[0].pbr.get(), m_gbufferAttachments[1].pbr.get()});
+	m_guiRenderer->createEmissiveDescriptorSet({ m_gbufferAttachments[0].emissive.get(), m_gbufferAttachments[1].emissive.get() });
 
 
 }
@@ -693,12 +731,13 @@ void Renderer::recordGbufferCommandBuffer(std::vector<ObjectInstance>& objDescs)
 	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.renderArea.extent = m_extent;
 
-	std::array<VkClearValue, 5> clearValues{};
+	std::array<VkClearValue, 6> clearValues{};
 	clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
 	clearValues[1].color = { 0.0f, 0.0f, 0.0f, 1.0f };
 	clearValues[2].color = { 0.0f, 0.0f, 0.0f, 1.0f };
 	clearValues[3].color = { 0.0f, 0.0f, 0.0f, 1.0f };
-	clearValues[4].depthStencil = { 1.0f, 0 };
+	clearValues[4].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+	clearValues[5].depthStencil = { 1.0f, 0 };
 
 	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	renderPassInfo.pClearValues = clearValues.data();
@@ -1052,12 +1091,12 @@ void Renderer::transferImageLayout( VkCommandBuffer cmd, Texture* texture, VkIma
 }
 
 
-void Renderer::recordRayTracingCommandBuffer() {
+void Renderer::recordReflectionCommandBuffer() {
 	VkCommandBuffer cmd = m_commandBuffers->getCommandBuffers()[currentFrame];
 
 	
 
-	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipeline->getPipeline());
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_reflectionPipeline->getPipeline());
 
 	VkDescriptorSet sets[] = {
 		m_globlaDescSets[currentFrame]->getDescriptorSet(),  // set=0 (camera)
@@ -1067,15 +1106,44 @@ void Renderer::recordRayTracingCommandBuffer() {
 		m_attachmentDescSets[currentFrame]->getDescriptorSet() // set=4 (gbuffer)
 	};
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-		m_rtPipeline->getPipelineLayout(), 0, 5, sets, 0, nullptr);
+		m_reflectionPipeline->getPipelineLayout(), 0, 5, sets, 0, nullptr);
 
 
 	VkStridedDeviceAddressRegionKHR emptyRegion{};
 	g_vkCmdTraceRaysKHR(
 		cmd,
-		&m_rtPipeline->getRaygenRegion(),
-		&m_rtPipeline->getMissRegion(),
-		&m_rtPipeline->getHitRegion(),
+		&m_reflectionPipeline->getRaygenRegion(),
+		&m_reflectionPipeline->getMissRegion(),
+		&m_reflectionPipeline->getHitRegion(),
+		&emptyRegion,
+		m_extent.width,
+		m_extent.height,
+		1);
+}
+
+void Renderer::recordGICmdBuffer() {
+	VkCommandBuffer cmd = m_commandBuffers->getCommandBuffers()[currentFrame];
+
+
+
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_giPipeline->getPipeline());
+
+	VkDescriptorSet sets[] = {
+		m_globlaDescSets[currentFrame]->getDescriptorSet(),  // set=0 (camera)
+		m_rtDescSets[currentFrame]->getDescriptorSet(),       // set=1 (outputImage + TLAS)
+		m_objectMaterialDescSets[currentFrame]->getDescriptorSet(), // set=2 (object material)
+		m_bindlessDescSets[currentFrame]->getDescriptorSet(), // set=3 (bindless)
+		m_attachmentDescSets[currentFrame]->getDescriptorSet() // set=4 (gbuffer)
+	};
+	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+		m_giPipeline->getPipelineLayout(), 0, 5, sets, 0, nullptr);
+
+	VkStridedDeviceAddressRegionKHR emptyRegion{};
+	g_vkCmdTraceRaysKHR(
+		cmd,
+		&m_giPipeline->getRaygenRegion(),
+		&m_giPipeline->getMissRegion(),
+		&m_giPipeline->getHitRegion(),
 		&emptyRegion,
 		m_extent.width,
 		m_extent.height,

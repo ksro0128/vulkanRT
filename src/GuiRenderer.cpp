@@ -156,26 +156,25 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 	 else if (m_viewPortIndex == 5) {
 		 ImGui::Image((ImTextureID)(uint64_t)m_pbrDescriptorSet[currentFrame], m_viewportSize);
 	 }
+	 else if (m_viewPortIndex == 6) {
+		 ImGui::Image((ImTextureID)(uint64_t)m_emissiveDescriptorSet[currentFrame], m_viewportSize);
+	 }
 	 
      ImGui::End();
 
 	// Profiler 창
 	ImGui::Begin("Profiler");
+	static int currentRTMode = 0;
 
 	bool disableUI = m_benchmarkRunning;
 	if (disableUI) { ImGui::BeginDisabled(true); }
-
-	bool rtEnabled = getRTEnabled();
-	if (ImGui::Checkbox("Enable Ray Tracing", &rtEnabled)) {
-		setRTEnabled(rtEnabled);
-	}
 
 	ImGuiIO& io = ImGui::GetIO();
 	ImGui::Text("FPS: %.1f", io.Framerate);
 	ImGui::Text("Viewport Size: %.0f x %.0f", m_viewportSize.x, m_viewportSize.y);
 
 
-	const char* items[] = { "Viewport", "Ray Tracing", "Albedo", "Position", "Normal", "PBR" };
+	const char* items[] = { "Viewport", "Ray Tracing", "Albedo", "Position", "Normal", "PBR", "Emissive"};
 	int itemCount = IM_ARRAYSIZE(items);
 
 	ImGui::Text("Select Viewport");
@@ -186,7 +185,7 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 
 		bool is_selected = (m_viewPortIndex == i);
 		bool is_rt_option = (i == 1);
-		bool rt_enabled = getRTEnabled();
+		bool rt_enabled = currentRTMode == 1 || currentRTMode == 2;
 		bool disabled = (is_rt_option && !rt_enabled);
 
 		if (is_selected) {
@@ -212,13 +211,12 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 	}
 	ImGui::EndChild();
 
-	if (!getRTEnabled() && m_viewPortIndex == 1) {
+	if (currentRTMode == 0 && m_viewPortIndex == 1) {
 		m_viewPortIndex = 0;
 	}
 
 
-	const char* rtModes[] = { "1-Bounce", "2-Bounce", "Glossy (1-Bounce)" , "Glossy (1-Bounce + 4 sample)"};
-	static int currentRTMode = 0;
+	const char* rtModes[] = { "off", "reflection", "path"};
 	ImGui::Text("RT Reflection Mode");
 	if (ImGui::Combo("##RTModeSelector", &currentRTMode, rtModes, IM_ARRAYSIZE(rtModes))) {
 		if (setRTMode) setRTMode(currentRTMode);
@@ -424,9 +422,8 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 		 ImGui::ColorEdit4("Base Color", glm::value_ptr(newMaterial.baseColor));
 		 ImGui::SliderFloat("Roughness", &newMaterial.roughness, 0.0f, 1.0f);
 		 ImGui::SliderFloat("Metallic", &newMaterial.metallic, 0.0f, 1.0f);
-
+		 ImGui::ColorEdit3("Emissive Color", glm::value_ptr(newMaterial.emissiveFactor));
 		 if (ImGui::Button("Create Material")) {
-			 newMaterial.emissiveFactor = glm::vec3(0.0f);
 			 newMaterial.ao = 1.0f;
 			 newMaterial.albedoTexIndex = -1;
 			 newMaterial.normalTexIndex = -1;
@@ -442,6 +439,22 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 			 }
 		 }
 	 }
+	 static int selectedMaterialIndex = 0;
+	 int materialCount = scene->getMaxMaterialIndex();
+
+	 ImGui::Separator();
+	 ImGui::Text("Edit Existing Material");
+
+	 ImGui::SliderInt("Material Index", &selectedMaterialIndex, 0, materialCount - 1);
+
+	 if (getMaterial) {
+		 Material& mat = getMaterial(selectedMaterialIndex);
+		 ImGui::ColorEdit4("Base Color##edit", glm::value_ptr(mat.baseColor));
+		 ImGui::SliderFloat("Roughness##edit", &mat.roughness, 0.0f, 1.0f);
+		 ImGui::SliderFloat("Metallic##edit", &mat.metallic, 0.0f, 1.0f);
+		 ImGui::ColorEdit3("Emissive Color##edit", glm::value_ptr(mat.emissiveFactor));
+	 }
+	 
 
 	 ImGui::End();
 
@@ -516,6 +529,17 @@ void GuiRenderer::createPbrDescriptorSet(std::array<Texture*, 2> textures) {
 	m_pbrDescriptorSet.resize(textures.size());
 	m_pbrDescriptorSet[0] = ImGui_ImplVulkan_AddTexture(textures[0]->getSampler(), textures[0]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	m_pbrDescriptorSet[1] = ImGui_ImplVulkan_AddTexture(textures[1]->getSampler(), textures[1]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
+void GuiRenderer::createEmissiveDescriptorSet(std::array<Texture*, 2> textures) {
+	if (m_emissiveDescriptorSet.size() == 2) {
+		for (auto& descSet : m_emissiveDescriptorSet) {
+			ImGui_ImplVulkan_RemoveTexture(descSet);
+		}
+	}
+	m_emissiveDescriptorSet.resize(textures.size());
+	m_emissiveDescriptorSet[0] = ImGui_ImplVulkan_AddTexture(textures[0]->getSampler(), textures[0]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	m_emissiveDescriptorSet[1] = ImGui_ImplVulkan_AddTexture(textures[1]->getSampler(), textures[1]->getImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 

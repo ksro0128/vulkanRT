@@ -54,5 +54,6 @@ struct GbufferAttachment {
 	std::unique_ptr<Texture> normal;
 	std::unique_ptr<Texture> albedo;
 	std::unique_ptr<Texture> pbr;
+	std::unique_ptr<Texture> emissive;
 	std::unique_ptr<Texture> depth;
 };

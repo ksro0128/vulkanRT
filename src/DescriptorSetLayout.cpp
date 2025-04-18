@@ -153,7 +153,7 @@ void DescriptorSetLayout::initAttachment(VulkanContext* context) {
 	
 	std::vector<VkDescriptorSetLayoutBinding> bindings;
 
-	for (uint32_t i = 0; i < 4; i++) {
+	for (uint32_t i = 0; i < 5; i++) {
 		VkDescriptorSetLayoutBinding binding{};
 		binding.binding = i;
 		binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

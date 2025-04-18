@@ -41,6 +41,7 @@ layout(set = 1, binding = 0) uniform sampler2D gPosition;
 layout(set = 1, binding = 1) uniform sampler2D gNormal;
 layout(set = 1, binding = 2) uniform sampler2D gAlbedo;
 layout(set = 1, binding = 3) uniform sampler2D gPBR;
+layout(set = 1, binding = 4) uniform sampler2D gEmissive;
 
 layout(set = 2, binding = 0) uniform LightMatrixBuffer {
     mat4 lightMatrices[13];
@@ -171,14 +172,16 @@ void main() {
     float roughness = pbrParams.g;
     float metallic = pbrParams.b;
 
+    vec3 emissive = texture(gEmissive, fragTexCoord).rgb;
+
     vec3 N = normal;
     vec3 V = normalize(camera.camPos - fragPos);
 
-    vec4 rtColor = imageLoad(rtOutput, ivec2(gl_FragCoord.xy));
     vec3 finalColor = vec3(0.0);
+    vec3 diffuseSum = vec3(0.0);
+    vec3 specularSum = vec3(0.0);
 
     vec3 ambient =  lightInfo.ambientColor * albedo * ao;
-    finalColor += ambient;
 
     for (uint i = 0; i < lightInfo.lightCount; i++) {
         vec3 L;
@@ -245,32 +248,38 @@ void main() {
         }
 
         vec3 H = normalize(V + L);
-        vec3 F0 = mix(vec3(0.04), albedo, metallic);
-        vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
         float NDF = distributionGGX(N, H, roughness);
         float G = geometrySmith(N, V, L, roughness);
+
+        vec3 F0 = mix(vec3(0.04), albedo, metallic);
+        vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
         vec3 numerator = NDF * G * F;
         float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
         vec3 specular = numerator / denominator;
 
-        vec3 kS = F;
-        vec3 kD = vec3(1.0) - kS;
-        kD *= 1.0 - metallic;
+        vec3 kS = F;        
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic); 
 
         float NdotL = max(dot(N, L), 0.01);
         vec3 diffuse = kD * albedo / 3.14159265359;
         vec3 radiance = light.intensity * light.color * attenuation * NdotL;
 
-        finalColor += (diffuse + specular) * radiance;
+        diffuseSum += diffuse * radiance;
+        specularSum += specular * radiance;
     }
 
-    if (renderOptions.useRTReflection == 1) {
-        vec3 F0 = mix(vec3(0.04), albedo, metallic);
-        vec3 F = fresnelSchlick(max(dot(N, V), 0.0), F0);		
-        finalColor += rtColor.rgb * F;
+    vec3 F0_view = mix(vec3(0.04), albedo, metallic);
+    vec3 F_view  = fresnelSchlick(max(dot(N, V), 0.0), F0_view);
+
+    vec3 direct   = diffuseSum + specularSum;
+    vec3 indirect = vec3(0.0);
+    if (renderOptions.rtMode == 1) {           
+        vec3 rtCol = imageLoad(rtOutput, ivec2(gl_FragCoord.xy)).rgb;
+        indirect   = rtCol * F_view * ao;
     }
 
+    finalColor = ambient + direct + indirect;
+    finalColor += emissive;
     outColor = vec4(clamp(finalColor, 0.0, 1.0), 1.0);
 }
