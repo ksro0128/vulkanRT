@@ -29,6 +29,8 @@ private:
 	VkStridedDeviceAddressRegionKHR m_raygenRegion{};
 	VkStridedDeviceAddressRegionKHR m_missRegion{};
 	VkStridedDeviceAddressRegionKHR m_hitRegion{};
+	VkStridedDeviceAddressRegionKHR m_shadowHitRegion{};
+	VkStridedDeviceAddressRegionKHR m_shadowMissRegion{};
 
 	void cleanup();
 	void initReflection(VulkanContext* context, std::vector<DescriptorSetLayout*> descriptorSetLayouts);

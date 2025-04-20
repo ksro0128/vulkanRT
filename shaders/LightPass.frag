@@ -7,6 +7,7 @@ layout(set = 0, binding = 0) uniform CameraBuffer {
     mat4 view;
     mat4 proj;
     vec3 camPos;
+    int frameCount;
 } camera;
 
 struct Light {
@@ -34,7 +35,8 @@ layout(set = 0, binding = 1) readonly buffer LightBuffer {
 layout(set = 0, binding = 2) uniform RenderOptions {
     int useRTReflection;
     int rtMode;
-    vec2 pad;
+    int reflectionSampleCount;
+    int reflectionMaxBounce;
 } renderOptions;
 
 layout(set = 1, binding = 0) uniform sampler2D gPosition;
@@ -274,9 +276,9 @@ void main() {
 
     vec3 direct   = diffuseSum + specularSum;
     vec3 indirect = vec3(0.0);
-    if (renderOptions.rtMode == 1) {           
+    if (renderOptions.rtMode == 1) {
         vec3 rtCol = imageLoad(rtOutput, ivec2(gl_FragCoord.xy)).rgb;
-        indirect   = rtCol * F_view * ao;
+        indirect   = rtCol * ao;
     }
 
     finalColor = ambient + direct + indirect;

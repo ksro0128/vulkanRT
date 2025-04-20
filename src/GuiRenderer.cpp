@@ -222,6 +222,21 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 		if (setRTMode) setRTMode(currentRTMode);
 	}
 
+
+	static int reflectionSampleCount = 1;
+	if (currentRTMode == 1) {
+		ImGui::Text("Reflection Sample Count");
+		ImGui::SliderInt("##ReflectionSampleCount", &reflectionSampleCount, 1, 16);
+		if (setReflectionSampleCount) setReflectionSampleCount(reflectionSampleCount);
+	}
+
+	static int reflectionMaxBounce = 1;
+	if (currentRTMode == 1) {
+		ImGui::Text("Reflection Max Bounce");
+		ImGui::SliderInt("##ReflectionMaxBounce", &reflectionMaxBounce, 1, 4);
+		if (setReflectionMaxBounce) setReflectionMaxBounce(reflectionMaxBounce);
+	}
+
 	if (!m_benchmarkRunning && ImGui::Button("Start Benchmark")) {
 		m_benchmarkRunning = true;
 		m_benchmarkTime = 0.0f;

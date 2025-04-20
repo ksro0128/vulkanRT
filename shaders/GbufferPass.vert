@@ -17,6 +17,7 @@ layout(set = 0, binding = 0) uniform CameraBuffer {
     mat4 view;
     mat4 proj;
     vec3 camPos;
+    int frameCount;
 } camera;
 
 struct ObjectInstance {

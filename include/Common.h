@@ -177,7 +177,7 @@ struct alignas(16) CameraBuffer {
 	glm::mat4 view;
 	glm::mat4 proj;
 	glm::vec3 camPos;
-	float pad = 0.0f;
+	int frameCount = 0;
 };
 
 struct alignas(16) Light {
@@ -243,7 +243,8 @@ struct alignas(16) LightMatrix {
 struct alignas(16) RenderOptions {
 	int useRTReflection = 0;
 	int rtMode = 0; // 0: off, 1: reflection, 2: gi
-	glm::vec2 pad = glm::vec2(0.0f);
+	int sampleCount = 1;
+	int maxBounce = 1;
 };
 
 void printMaterial(const Material& mat);

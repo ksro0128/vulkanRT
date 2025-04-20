@@ -22,12 +22,10 @@ void Renderer::init(GLFWwindow* window) {
 	m_swapChain = SwapChain::createSwapChain(window, m_context.get());
 	m_syncObjects = SyncObjects::createSyncObjects(m_context.get());
 	m_commandBuffers = CommandBuffers::createCommandBuffers(m_context.get());
-
-	// m_extent = m_swapChain->getSwapChainExtent();
 	m_extent = {1024, 1024};
 
-	createDefaultModels();
 
+	createDefaultModels();
 	/*
 	 loadModel("./assets/materials/aerial_grass_rock_1k.gltf/aerial_grass_rock_1k.gltf");
 	 loadModel("./assets/materials/aerial_rocks_02_1k.gltf/aerial_rocks_02_1k.gltf");
@@ -41,15 +39,14 @@ void Renderer::init(GLFWwindow* window) {
 	 loadModel("./assets/models/Camera_01_1k.gltf/Camera_01_1k.gltf");
 	 */
 
+
 	// loadModel("./assets/main1_sponza/NewSponza_Main_glTF_003.gltf");
 	//loadModel("./assets/sponza.glb");
 	//loadModel("./main1_sponza/NewSponza_Main_glTF_003.gltf");
 	// loadModel("./pkg_a_curtains/NewSponza_Curtains_glTF.gltf");
 	
-	
-	
-	loadModel("./assets/nodecal.glb");
-	loadModel("./assets/models/knight.glb");
+	// loadModel("./assets/nodecal.glb");
+	// loadModel("./assets/models/knight.glb");
 	//loadModel("./assets/models/cornell_box-_original.glb");
 	//loadModel("./assets/models/cornell.gltf");
 
@@ -60,7 +57,6 @@ void Renderer::init(GLFWwindow* window) {
 	m_attachmentLayout = DescriptorSetLayout::createAttachmentDescriptorSetLayout(m_context.get());
 	m_shadowLayout = DescriptorSetLayout::createShadowDescriptorSetLayout(m_context.get());
 	m_rayTracingLayout = DescriptorSetLayout::createRayTracingDescriptorSetLayout(m_context.get());
-
 
 	// buffers
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -188,7 +184,12 @@ void Renderer::init(GLFWwindow* window) {
 		}
 		return m_materialList[index];
 		};
-
+	m_guiRenderer->setReflectionSampleCount = [this](int32_t count) {
+		m_reflectionSampleCount = count;
+	};
+	m_guiRenderer->setReflectionMaxBounce = [this](int32_t bounce) {
+		m_reflectionMaxBounce = bounce;
+	};
 
 	m_scene = Scene::createScene(m_modelList.size(), m_materialList.size(), m_textureList.size());
 
@@ -356,19 +357,7 @@ void Renderer::render(float deltaTime) {
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 		VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
 
-	if (m_rtEnabled) {
-		RenderOptions renderOptions;
-		renderOptions.useRTReflection = 1;
-		renderOptions.rtMode = m_rtMode;
-		m_renderOptionsBuffers[currentFrame]->updateUniformBuffer(&renderOptions, sizeof(RenderOptions));
-		recordReflectionCommandBuffer();
-	}
-	else {
-		RenderOptions renderOptions;
-		renderOptions.useRTReflection = 0;
-		renderOptions.rtMode = m_rtMode;
-		m_renderOptionsBuffers[currentFrame]->updateUniformBuffer(&renderOptions, sizeof(RenderOptions));
-	}
+
 	if (m_rtMode == 0) {
 
 	}
@@ -381,6 +370,8 @@ void Renderer::render(float deltaTime) {
 	RenderOptions renderOptions;
 	renderOptions.useRTReflection = 0;
 	renderOptions.rtMode = m_rtMode;
+	renderOptions.sampleCount = m_reflectionSampleCount;
+	renderOptions.maxBounce = m_reflectionMaxBounce;
 	m_renderOptionsBuffers[currentFrame]->updateUniformBuffer(&renderOptions, sizeof(RenderOptions));
 
 	
@@ -615,6 +606,24 @@ void Renderer::createDefaultModels()
 	int32_t matIndex = static_cast<int32_t>(m_materialList.size());
 	m_materialList.push_back(defaultMat);
 
+	Material redMat{};
+	redMat.albedoTexIndex = -1;
+	redMat.baseColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	int32_t redMatIndex = static_cast<int32_t>(m_materialList.size());
+	m_materialList.push_back(redMat);
+
+	Material greenMat{};
+	greenMat.albedoTexIndex = -1;
+	greenMat.baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+	int32_t greenMatIndex = static_cast<int32_t>(m_materialList.size());
+	m_materialList.push_back(greenMat);
+
+	Material blueMat{};
+	blueMat.albedoTexIndex = -1;
+	blueMat.baseColor = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+	int32_t blueMatIndex = static_cast<int32_t>(m_materialList.size());
+	m_materialList.push_back(blueMat);
+
 	auto createAndRegisterMesh = [&](std::unique_ptr<Mesh> mesh) -> int32_t {
 		int32_t meshIndex = static_cast<int32_t>(m_meshList.size());
 		m_meshList.push_back(std::move(mesh));
@@ -679,6 +688,7 @@ void Renderer::printAllResources() {
 
 	std::cout << "=======================================" << std::endl;
 }
+
 
 void Renderer::createObjDesc(std::vector<ObjectInstance>& ObjDescs, std::vector<ModelBuffer>& modelBuffers) {
 	auto& objects = m_scene->getObjects();
@@ -766,6 +776,7 @@ void Renderer::recordGbufferCommandBuffer(std::vector<ObjectInstance>& objDescs)
 	cameraBuffer.proj = glm::perspective(glm::radians(45.0f), (float)m_extent.width / (float)m_extent.height, 0.1f, 100.0f);
 	cameraBuffer.proj[1][1] *= -1;
 	cameraBuffer.camPos = m_camera.position;
+	cameraBuffer.frameCount = m_frameCount++;
 
 	m_cameraBuffers[currentFrame]->updateUniformBuffer(&cameraBuffer, sizeof(CameraBuffer));
 
@@ -1094,8 +1105,6 @@ void Renderer::transferImageLayout( VkCommandBuffer cmd, Texture* texture, VkIma
 void Renderer::recordReflectionCommandBuffer() {
 	VkCommandBuffer cmd = m_commandBuffers->getCommandBuffers()[currentFrame];
 
-	
-
 	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_reflectionPipeline->getPipeline());
 
 	VkDescriptorSet sets[] = {
@@ -1107,7 +1116,6 @@ void Renderer::recordReflectionCommandBuffer() {
 	};
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
 		m_reflectionPipeline->getPipelineLayout(), 0, 5, sets, 0, nullptr);
-
 
 	VkStridedDeviceAddressRegionKHR emptyRegion{};
 	g_vkCmdTraceRaysKHR(
@@ -1123,9 +1131,6 @@ void Renderer::recordReflectionCommandBuffer() {
 
 void Renderer::recordGICmdBuffer() {
 	VkCommandBuffer cmd = m_commandBuffers->getCommandBuffers()[currentFrame];
-
-
-
 	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_giPipeline->getPipeline());
 
 	VkDescriptorSet sets[] = {

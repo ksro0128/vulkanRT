@@ -31,6 +31,8 @@ public:
 	std::function<void(const Material&)> addMaterial;
 	std::function<Material&(int32_t)> getMaterial;
 	std::function<void(int32_t)> setRTMode;
+	std::function<void(int32_t)> setReflectionSampleCount;
+	std::function<void(int32_t)> setReflectionMaxBounce;
 
 private:
     VulkanContext* context;

@@ -41,6 +41,8 @@ private:
 	// pipeline switch
 	bool m_rtEnabled = false;
 	int m_rtMode = 0;
+	int m_reflectionSampleCount = 1;
+	int m_reflectionMaxBounce = 1;
 
 	// resources list
 	std::vector<std::unique_ptr<Mesh>> m_meshList;
@@ -125,6 +127,8 @@ private:
 	float m_pitch = 0.0f;
 	float m_mouseSensitivity = 0.2f;
 	float m_moveSpeed = 3.0f;
+
+	int m_frameCount = 0;
 
 	void cleanup();
 	void init(GLFWwindow* window);

@@ -17,10 +17,17 @@ layout(buffer_reference, scalar) buffer Indices  { uvec3 i[]; };
 
 struct RayPayload {
     vec3 color;
+	vec3 beta;
     int bounce;
 };
 
 layout(location = 0) rayPayloadInEXT RayPayload payload;
+
+struct ShadowPayload {
+    bool visible;
+};
+
+layout(location = 1) rayPayloadInEXT ShadowPayload shadowPayload;
 
 struct Light {
     int type;
@@ -85,6 +92,83 @@ layout(set = 3, binding = 2) uniform sampler2D textures[];
 
 hitAttributeEXT vec2 attribs;
 
+
+float hash1(vec2 p) {
+    p = fract(p * vec2(123.34, 345.45));
+    p += dot(p, p + 34.345);
+    return fract(p.x * p.y);
+}
+
+float vdcSequence(uint bits) 
+{
+    bits = (bits << 16u) | (bits >> 16u);
+    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+    return float(bits) * 2.3283064365386963e-10;
+}
+
+vec2 hammersleySequence(uint i, uint N)
+{
+    return vec2(float(i) / float(N), vdcSequence(i));
+}
+
+vec3 importanceSampleGGX(vec2 Xi, vec3 N, float roughness)
+{
+    float alpha = roughness * roughness;
+    float alpha2 = alpha * alpha;
+	
+    float phi = 2.0 * 3.1415926535 * Xi.x;
+    float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (alpha2 - 1.0) * Xi.y));
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+	
+    vec3 H;
+    H.x = cos(phi) * sinTheta;
+    H.y = sin(phi) * sinTheta;
+    H.z = cosTheta;
+	
+    vec3 up        = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+    vec3 tangent   = normalize(cross(up, N));
+    vec3 bitangent = cross(N, tangent);
+	
+    vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+    return normalize(sampleVec);
+}
+
+float distributionGGX(vec3 N, vec3 H, float roughness) {
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+    float denominator = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / (3.14159265359 * denominator * denominator);
+}
+
+float ggxPdf(vec3 N, vec3 H, vec3 V, float roughness) {
+    float D = distributionGGX(N, H, roughness);
+    float NdotH = max(dot(N, H), 0.0);
+    float VdotH = max(dot(V, H), 0.0);
+    return D * NdotH / (4.0 * VdotH + 1e-5); // pdf = D(h) * (N⋅H) / (4 * (V⋅H))
+}
+
+// Fresnel-Schlick Approximation
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+// Geometry Function
+float geometrySchlickGGX(float NdotV, float roughness) {
+    float k = (roughness + 1.0) * (roughness + 1.0) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    return geometrySchlickGGX(NdotV, roughness) * geometrySchlickGGX(NdotL, roughness);
+}
+
 void main() {
     ObjectInstance inst = instances[gl_InstanceCustomIndexEXT];
     Vertices vertices = Vertices(inst.vertexIndex);
@@ -102,6 +186,8 @@ void main() {
 
     Material mat = materials[inst.materialIndex];
 
+	mat4 model = modelMatrices[inst.modelMatrixIndex];
+
 	vec3 normal;
 	if (mat.normalTexIndex != -1) {
 		vec3 tangent = normalize(v0.tangent);
@@ -112,17 +198,62 @@ void main() {
 		sampledNormal = normalize(sampledNormal * 2.0 - 1.0);
 		normal = normalize(TBN * sampledNormal);
 	} else {
-		normal = normalize(cross(v1.pos - v0.pos, v2.pos - v0.pos));
+		vec3 localNormal = normalize(v0.normal * w + v1.normal * u + v2.normal * v);
+		mat3 normalMatrix = transpose(inverse(mat3(model)));
+		normal = normalize(normalMatrix * localNormal);
 	}
-	vec3 albedo = (mat.albedoTexIndex == -1) ? mat.baseColor.rgb : texture(textures[nonuniformEXT(mat.albedoTexIndex)], uv).rgb;
-
-    vec3 Li = vec3(0.0);
-
+	vec3 albedo = (mat.albedoTexIndex == -1) 
+		? mat.baseColor.rgb 
+		: mat.baseColor.rgb * texture(textures[nonuniformEXT(mat.albedoTexIndex)], uv).rgb;
     vec3 emissive = (mat.emissiveTexIndex == -1)
         ? mat.emissiveFactor
-        : texture(textures[nonuniformEXT(mat.emissiveTexIndex)], uv).rgb * mat.emissiveFactor;
-    Li += emissive;
+        : mat.emissiveFactor * texture(textures[nonuniformEXT(mat.emissiveTexIndex)], uv).rgb;
 
-    Li += lightInfo.ambientColor * albedo * mat.ao;
-    payload.color = Li;
+	float roughness = (mat.roughnessTexIndex == -1) ? mat.roughness : mat.roughness * texture(textures[nonuniformEXT(mat.roughnessTexIndex)], uv).g;
+	if (roughness < 0.04) {
+        roughness = 0.04;
+    }
+	float metallic = (mat.metallicTexIndex == -1) ? mat.metallic : mat.metallic * texture(textures[nonuniformEXT(mat.metallicTexIndex)], uv).b;
+	float ao = (mat.aoTexIndex == -1) ? mat.ao : mat.ao * texture(textures[nonuniformEXT(mat.aoTexIndex)], uv).r;
+
+
+    vec3 Li = vec3(0.0);
+    // Li += emissive;
+    Li += lightInfo.ambientColor * albedo * ao * payload.beta;
+
+	if (payload.bounce - 1 > 0) {
+		vec3 worldPos  = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
+		vec3 worldNormal = normal;
+		vec3 viewDir = normalize(gl_WorldRayOriginEXT - worldPos);
+		vec3 F0 = mix(vec3(0.04), albedo, metallic);
+		uint seed = gl_LaunchIDEXT.x * 1973u ^ gl_LaunchIDEXT.y * 9277u ^ uint(payload.bounce);
+		vec2 Xi = hammersleySequence(seed, 1024);
+		vec3 H = importanceSampleGGX(Xi, worldNormal, roughness);
+		vec3 L = normalize(reflect(-viewDir, H));
+		if (dot(worldNormal, L) > 0.0) {
+			float pdf = ggxPdf(worldNormal, H, viewDir, roughness);
+			if (pdf < 1e-5) {
+				payload.color = Li;
+				return;
+			}
+			float NoV = max(dot(worldNormal, viewDir), 1e-3);
+			float NoL = max(dot(worldNormal, L), 1e-3);
+			vec3 F = fresnelSchlick(max(dot(H, viewDir), 0.0), F0);
+			float NDF = distributionGGX(worldNormal, H, roughness);
+			float G = geometrySmith(worldNormal, viewDir, L, roughness);
+			vec3 brdf = (NDF * G * F) / (4.0 * NoV * NoL + 1e-5);
+			vec3 beta = payload.beta * brdf * NoL / max(pdf, 1e-5);
+
+			payload.color = vec3(0.0);
+			payload.beta = beta;
+			payload.bounce = payload.bounce - 1;
+
+			traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
+				worldPos + L * 0.01, 0.001, L, 1e4, 0);
+
+			Li += payload.color;
+		}
+	}
+
+	payload.color = Li;
 }
