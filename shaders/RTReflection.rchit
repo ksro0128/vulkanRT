@@ -23,11 +23,7 @@ struct RayPayload {
 
 layout(location = 0) rayPayloadInEXT RayPayload payload;
 
-struct ShadowPayload {
-    bool visible;
-};
-
-layout(location = 1) rayPayloadInEXT ShadowPayload shadowPayload;
+layout(location = 1) rayPayloadEXT bool isShadowed;
 
 struct Light {
     int type;
@@ -44,6 +40,14 @@ struct Light {
     vec3 direction;
     float spotOuterAngle;
 };
+
+layout(set = 0, binding = 0) uniform CameraBuffer {
+    mat4 view;
+    mat4 proj;
+    vec3 camPos;
+	int frameCount;
+} camera;
+
 
 layout(set = 0, binding = 1) readonly buffer LightBuffer {
     Light lights[64];
@@ -169,6 +173,28 @@ float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
     return geometrySchlickGGX(NdotV, roughness) * geometrySchlickGGX(NdotL, roughness);
 }
 
+
+uint tea(in uint val0, in uint val1)
+{
+  uint v0 = val0;
+  uint v1 = val1;
+  uint s0 = 0;
+
+  for(uint n = 0; n < 16; n++)
+  {
+    s0 += 0x9e3779b9;
+    v0 += ((v1 << 4) + 0xa341316c) ^ (v1 + s0) ^ ((v1 >> 5) + 0xc8013ea4);
+    v1 += ((v0 << 4) + 0xad90777d) ^ (v0 + s0) ^ ((v0 >> 5) + 0x7e95761e);
+  }
+
+  return v0;
+}
+
+uint initRandom(in uvec2 resolution, in uvec2 screenCoord, in uint frame)
+{
+  return tea(screenCoord.y * resolution.x + screenCoord.x, frame);
+}
+
 void main() {
     ObjectInstance inst = instances[gl_InstanceCustomIndexEXT];
     Vertices vertices = Vertices(inst.vertexIndex);
@@ -219,15 +245,68 @@ void main() {
 
     vec3 Li = vec3(0.0);
     // Li += emissive;
-    Li += lightInfo.ambientColor * albedo * ao * payload.beta;
+    // Li += lightInfo.ambientColor * albedo * ao * payload.beta;
+
+    
+
+
+    {
+        Light light = lightInfo.lights[0];
+        vec3 L = normalize(-light.direction);
+        float attenuation = 1.0;
+        vec3 N = normal;
+        vec3 worldPos  = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
+
+        isShadowed = true;
+        traceRayEXT(topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT,
+        0xFF, 0, 0, 1, worldPos + L * 0.01, 0.001, L, 1e4, 1);
+
+        if (isShadowed) {
+            attenuation = 0.0;
+        } else {
+            attenuation = 1.0;
+        }
+
+		vec3 V = normalize(gl_WorldRayOriginEXT - worldPos);
+
+        vec3 ambient = lightInfo.ambientColor * albedo * ao;
+        vec3 H = normalize(V + L);
+        float NDF = distributionGGX(N, H, roughness);
+        float G = geometrySmith(N, V, L, roughness);
+
+        vec3 F0 = mix(vec3(0.04), albedo, metallic);
+        vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 numerator = NDF * G * F;
+        float denominator = 4.0 * max(dot(N, V), 1e-3) * max(dot(N, L), 1e-3) + 1e-5;
+        vec3 specular = numerator / denominator;
+        
+        vec3 kS = F;
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+
+        float NdotL = max(dot(N, L), 0.01);
+        vec3 diffuse = kD * albedo / 3.14159265359;
+        vec3 radiance = light.intensity * light.color * attenuation * NdotL;
+
+        Li += ambient + (diffuse + specular) * radiance * payload.beta;
+    }
+
+
 
 	if (payload.bounce - 1 > 0) {
 		vec3 worldPos  = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
 		vec3 worldNormal = normal;
 		vec3 viewDir = normalize(gl_WorldRayOriginEXT - worldPos);
 		vec3 F0 = mix(vec3(0.04), albedo, metallic);
-		uint seed = gl_LaunchIDEXT.x * 1973u ^ gl_LaunchIDEXT.y * 9277u ^ uint(payload.bounce);
-		vec2 Xi = hammersleySequence(seed, 1024);
+		
+        // uint seed = gl_LaunchIDEXT.x * 1973u ^ gl_LaunchIDEXT.y * 9277u ^ uint(payload.bounce);
+		// vec2 Xi = hammersleySequence(seed, 1024);
+        uint baseSeed = initRandom(uvec2(gl_LaunchSizeEXT.xy), uvec2(gl_LaunchIDEXT.xy), uint(camera.frameCount));
+        vec2 Xi = vec2(
+          float(tea(baseSeed, 0)) / float(0xFFFFFFFFu),
+          float(tea(baseSeed, 1)) / float(0xFFFFFFFFu)
+        );
+
 		vec3 H = importanceSampleGGX(Xi, worldNormal, roughness);
 		vec3 L = normalize(reflect(-viewDir, H));
 		if (dot(worldNormal, L) > 0.0) {

@@ -36,7 +36,22 @@ void Scene::init(uint32_t maxModelIndex, uint32_t maxMaterialIndex, uint32_t max
 	{
 		Object obj;
 		obj.modelIndex = 2;
+		obj.position = glm::vec3(-1.5f, 0.0f, 0.0f);
+		obj.overrideMaterialIndex = { 4 };
+		m_objects.push_back(obj);
+	}
+	{
+		Object obj;
+		obj.modelIndex = 2;
 		obj.position = glm::vec3(0.0f, 0.0f, 0.0f);
+		obj.overrideMaterialIndex = { 5 };
+		m_objects.push_back(obj);
+	}
+	{
+		Object obj;
+		obj.modelIndex = 2;
+		obj.position = glm::vec3(1.5f, 0.0f, 0.0f);
+		obj.overrideMaterialIndex = { 6 };
 		m_objects.push_back(obj);
 	}
 	

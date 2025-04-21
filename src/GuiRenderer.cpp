@@ -170,6 +170,7 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 	if (disableUI) { ImGui::BeginDisabled(true); }
 
 	ImGuiIO& io = ImGui::GetIO();
+	ImGui::Text("Frame Duration: %.3f ms", deltaTime * 1000.0f);
 	ImGui::Text("FPS: %.1f", io.Framerate);
 	ImGui::Text("Viewport Size: %.0f x %.0f", m_viewportSize.x, m_viewportSize.y);
 
@@ -226,7 +227,7 @@ void GuiRenderer::render(uint32_t currentFrame, VkCommandBuffer cmd, Scene *scen
 	static int reflectionSampleCount = 1;
 	if (currentRTMode == 1) {
 		ImGui::Text("Reflection Sample Count");
-		ImGui::SliderInt("##ReflectionSampleCount", &reflectionSampleCount, 1, 16);
+		ImGui::SliderInt("##ReflectionSampleCount", &reflectionSampleCount, 1, 128);
 		if (setReflectionSampleCount) setReflectionSampleCount(reflectionSampleCount);
 	}
 

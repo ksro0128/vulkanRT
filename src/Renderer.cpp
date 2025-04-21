@@ -23,9 +23,8 @@ void Renderer::init(GLFWwindow* window) {
 	m_syncObjects = SyncObjects::createSyncObjects(m_context.get());
 	m_commandBuffers = CommandBuffers::createCommandBuffers(m_context.get());
 	m_extent = {1024, 1024};
-
-
 	createDefaultModels();
+
 	/*
 	 loadModel("./assets/materials/aerial_grass_rock_1k.gltf/aerial_grass_rock_1k.gltf");
 	 loadModel("./assets/materials/aerial_rocks_02_1k.gltf/aerial_rocks_02_1k.gltf");
@@ -38,15 +37,12 @@ void Renderer::init(GLFWwindow* window) {
 	 loadModel("./assets/models/lion_head_1k.gltf/lion_head_1k.gltf");
 	 loadModel("./assets/models/Camera_01_1k.gltf/Camera_01_1k.gltf");
 	 */
-
-
 	// loadModel("./assets/main1_sponza/NewSponza_Main_glTF_003.gltf");
 	//loadModel("./assets/sponza.glb");
 	//loadModel("./main1_sponza/NewSponza_Main_glTF_003.gltf");
 	// loadModel("./pkg_a_curtains/NewSponza_Curtains_glTF.gltf");
-	
-	// loadModel("./assets/nodecal.glb");
-	// loadModel("./assets/models/knight.glb");
+	//loadModel("./assets/nodecal.glb");
+	//loadModel("./assets/models/knight.glb");
 	//loadModel("./assets/models/cornell_box-_original.glb");
 	//loadModel("./assets/models/cornell.gltf");
 
@@ -609,20 +605,35 @@ void Renderer::createDefaultModels()
 	Material redMat{};
 	redMat.albedoTexIndex = -1;
 	redMat.baseColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-	int32_t redMatIndex = static_cast<int32_t>(m_materialList.size());
 	m_materialList.push_back(redMat);
 
 	Material greenMat{};
 	greenMat.albedoTexIndex = -1;
 	greenMat.baseColor = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-	int32_t greenMatIndex = static_cast<int32_t>(m_materialList.size());
 	m_materialList.push_back(greenMat);
 
 	Material blueMat{};
 	blueMat.albedoTexIndex = -1;
 	blueMat.baseColor = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
-	int32_t blueMatIndex = static_cast<int32_t>(m_materialList.size());
 	m_materialList.push_back(blueMat);
+
+	Material iron1{};
+	iron1.baseColor = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+	iron1.metallic = 1.0f;
+	iron1.roughness = 0.1f;
+	m_materialList.push_back(iron1);
+
+	Material iron2{};
+	iron2.baseColor = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+	iron2.metallic = 1.0f;
+	iron2.roughness = 0.2f;
+	m_materialList.push_back(iron2);
+
+	Material iron3{};
+	iron3.baseColor = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+	iron3.metallic = 1.0f;
+	iron3.roughness = 0.3f;
+	m_materialList.push_back(iron3);
 
 	auto createAndRegisterMesh = [&](std::unique_ptr<Mesh> mesh) -> int32_t {
 		int32_t meshIndex = static_cast<int32_t>(m_meshList.size());
@@ -793,7 +804,6 @@ void Renderer::recordGbufferCommandBuffer(std::vector<ObjectInstance>& objDescs)
 			index += value.size();
 		}
 	}*/
-
 	int32_t currentMeshIdx = -1;
 	uint32_t firstInstance = 0;
 	uint32_t instanceCount = 0;
@@ -1208,20 +1218,22 @@ void Renderer::updateCamera(float deltaTime) {
 	}
 }
 
-
 glm::mat4 Renderer::computeLightMatrix(Light& light) {
 	glm::mat4 lightView;
 	glm::mat4 lightProj;
-
 	glm::vec3 lightDir = glm::normalize(light.direction);
 	glm::vec3 up = (glm::abs(lightDir.y) > 0.99f) ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(0.0f, 1.0f, 0.0f);
 
 	if (light.type == LIGHT_TYPE_DIRECTIONAL) {
-		glm::vec3 eye = glm::vec3(0.0f) - glm::normalize(lightDir) * 120.0f;
-		glm::vec3 center = glm::vec3(0.0f);
-
-		lightView = glm::lookAt(eye, center, up);
+		/*glm::vec3 eye = glm::vec3(0.0f) - glm::normalize(lightDir) * 120.0f;
+		glm::vec3 center = glm::vec3(0.0f);*/
+		/*lightView = glm::lookAt(eye, center, up);
 		lightProj = glm::ortho(-80.f, 80.f, -80.f, 80.f, -50.0f, 250.f);
+		lightProj[1][1] *= -1.0f;*/
+		glm::vec3 eye = glm::vec3(0.0f) - glm::normalize(lightDir) * 10.0f;
+		glm::vec3 center = glm::vec3(0.0f);
+		lightView = glm::lookAt(eye, center, up);
+		lightProj = glm::ortho(-10.f, 10.f, -10.f, 10.f, -10.0f, 20.f);
 		lightProj[1][1] *= -1.0f;
 	}
 	else if (light.type == LIGHT_TYPE_SPOT) {

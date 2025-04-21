@@ -55,10 +55,12 @@ void RayTracingPipeline::initReflection(VulkanContext* context, std::vector<Desc
 	auto rgenCode = VulkanUtil::readFile("spv/RTReflection.rgen.spv");
 	auto rmissCode = VulkanUtil::readFile("spv/RTReflection.rmiss.spv");
 	auto rchitCode = VulkanUtil::readFile("spv/RTReflection.rchit.spv");
+	auto shodowMissCode = VulkanUtil::readFile("spv/RTShadow.rmiss.spv");
 
 	VkShaderModule  rgenModule = createShaderModule(context, rgenCode);
 	VkShaderModule rmissModule = createShaderModule(context, rmissCode);
 	VkShaderModule rchitModule = createShaderModule(context, rchitCode);
+	VkShaderModule shadowMissModule = createShaderModule(context, shodowMissCode);
 
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups{};
 
@@ -80,11 +82,20 @@ void RayTracingPipeline::initReflection(VulkanContext* context, std::vector<Desc
 	missGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
 	shaderGroups.push_back(missGroup);
 
+	VkRayTracingShaderGroupCreateInfoKHR shadowMissGroup{};
+	shadowMissGroup.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+	shadowMissGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+	shadowMissGroup.generalShader = 2;
+	shadowMissGroup.closestHitShader = VK_SHADER_UNUSED_KHR;
+	shadowMissGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
+	shadowMissGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
+	shaderGroups.push_back(shadowMissGroup);
+
 	VkRayTracingShaderGroupCreateInfoKHR hitGroup{};
 	hitGroup.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
 	hitGroup.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
 	hitGroup.generalShader = VK_SHADER_UNUSED_KHR;
-	hitGroup.closestHitShader = 2;
+	hitGroup.closestHitShader = 3; // 2 -> 3
 	hitGroup.anyHitShader = VK_SHADER_UNUSED_KHR;
 	hitGroup.intersectionShader = VK_SHADER_UNUSED_KHR;
 	shaderGroups.push_back(hitGroup);
@@ -119,6 +130,13 @@ void RayTracingPipeline::initReflection(VulkanContext* context, std::vector<Desc
 	rmissStage.pName = "main";
 	shaderStages.push_back(rmissStage);
 
+	VkPipelineShaderStageCreateInfo shadowMissStage{};
+	shadowMissStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	shadowMissStage.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
+	shadowMissStage.module = shadowMissModule;
+	shadowMissStage.pName = "main";
+	shaderStages.push_back(shadowMissStage);
+
 	VkPipelineShaderStageCreateInfo rchitStage{};
 	rchitStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	rchitStage.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
@@ -132,7 +150,7 @@ void RayTracingPipeline::initReflection(VulkanContext* context, std::vector<Desc
 	pipelineInfo.pStages = shaderStages.data();
 	pipelineInfo.groupCount = static_cast<uint32_t>(shaderGroups.size());
 	pipelineInfo.pGroups = shaderGroups.data();
-	pipelineInfo.maxPipelineRayRecursionDepth = 1;
+	pipelineInfo.maxPipelineRayRecursionDepth = 4;
 	pipelineInfo.layout = m_pipelineLayout;
 
 	if (g_vkCreateRayTracingPipelinesKHR(context->getDevice(), VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
@@ -142,6 +160,7 @@ void RayTracingPipeline::initReflection(VulkanContext* context, std::vector<Desc
 	vkDestroyShaderModule(context->getDevice(), rgenModule, nullptr);
 	vkDestroyShaderModule(context->getDevice(), rmissModule, nullptr);
 	vkDestroyShaderModule(context->getDevice(), rchitModule, nullptr);
+	vkDestroyShaderModule(context->getDevice(), shadowMissModule, nullptr);
 
 	const uint32_t groupCount = static_cast<uint32_t>(shaderGroups.size());
 
@@ -212,14 +231,13 @@ void RayTracingPipeline::initReflection(VulkanContext* context, std::vector<Desc
 	m_missRegion = {
 		sbtAddress + 1 * handleSizeAligned,
 		handleSizeAligned,
-		handleSizeAligned
+		handleSizeAligned * 2
 	};
 	m_hitRegion = {
-		sbtAddress + 2 * handleSizeAligned,
+		sbtAddress + 3 * handleSizeAligned,
 		handleSizeAligned,
 		handleSizeAligned
 	};
-
 }
 
 

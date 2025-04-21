@@ -274,11 +274,15 @@ void main() {
     vec3 F0_view = mix(vec3(0.04), albedo, metallic);
     vec3 F_view  = fresnelSchlick(max(dot(N, V), 0.0), F0_view);
 
-    vec3 direct   = diffuseSum + specularSum;
+    vec3 direct = vec3(0.0);
     vec3 indirect = vec3(0.0);
     if (renderOptions.rtMode == 1) {
         vec3 rtCol = imageLoad(rtOutput, ivec2(gl_FragCoord.xy)).rgb;
-        indirect   = rtCol * ao;
+        direct = diffuseSum + specularSum * (1 - F_view);
+        indirect = rtCol * F_view;
+    }
+    else {
+        direct = diffuseSum + specularSum;
     }
 
     finalColor = ambient + direct + indirect;

@@ -109,6 +109,28 @@ float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
     return geometrySchlickGGX(NdotV, roughness) * geometrySchlickGGX(NdotL, roughness);
 }
 
+uint tea(in uint val0, in uint val1)
+{
+  uint v0 = val0;
+  uint v1 = val1;
+  uint s0 = 0;
+
+  for(uint n = 0; n < 16; n++)
+  {
+    s0 += 0x9e3779b9;
+    v0 += ((v1 << 4) + 0xa341316c) ^ (v1 + s0) ^ ((v1 >> 5) + 0xc8013ea4);
+    v1 += ((v0 << 4) + 0xad90777d) ^ (v0 + s0) ^ ((v0 >> 5) + 0x7e95761e);
+  }
+
+  return v0;
+}
+
+uint initRandom(in uvec2 resolution, in uvec2 screenCoord, in uint frame)
+{
+  return tea(screenCoord.y * resolution.x + screenCoord.x, frame);
+}
+
+
 void main() {
     vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
     vec2 resolution = vec2(gl_LaunchSizeEXT.xy);
@@ -138,12 +160,18 @@ void main() {
     }
 
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
-	// uint scramble = camera.frameCount * 1664525u + 1013904223u;
-	// uint baseSeed = (gl_LaunchIDEXT.x * 1973u) ^ (gl_LaunchIDEXT.y * 9277u) ^ scramble;
-	uint baseSeed = (gl_LaunchIDEXT.x * 1973u) ^ (gl_LaunchIDEXT.y * 9277u) ^ uint(camera.frameCount);
+
+	// uint baseSeed = (gl_LaunchIDEXT.x * 1973u) ^ (gl_LaunchIDEXT.y * 9277u) ^ uint(camera.frameCount);
+    uint baseSeed = initRandom(uvec2(gl_LaunchSizeEXT.xy), uvec2(gl_LaunchIDEXT.xy), uint(camera.frameCount));
+
     for (int i = 0; i < sampleCount; ++i) {
 		uint idx = baseSeed + uint(i);
-        vec2 Xi = hammersleySequence(idx, sampleCount * 1024);
+        // vec2 Xi = hammersleySequence(idx % 8192u, 8192u);
+        vec2 Xi = vec2(
+          float(tea(idx, 0)) / float(0xFFFFFFFFu),
+          float(tea(idx, 1)) / float(0xFFFFFFFFu)
+        );
+
         vec3 H = importanceSampleGGX(Xi, worldNormal, roughness);
         vec3 L = normalize(reflect(-viewDir, H));
         if (dot(worldNormal, L) <= 0.0) {

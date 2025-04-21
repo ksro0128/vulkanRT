@@ -27,7 +27,7 @@ void DescriptorSetLayout::initGlobal(VulkanContext* context) {
 	cameraBinding.binding = 0;
 	cameraBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	cameraBinding.descriptorCount = 1;
-	cameraBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+	cameraBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 	cameraBinding.pImmutableSamplers = nullptr;
 	bindings.push_back(cameraBinding);
 
