@@ -288,7 +288,7 @@ void main() {
         vec3 diffuse = kD * albedo / 3.14159265359;
         vec3 radiance = light.intensity * light.color * attenuation * NdotL;
 
-        Li += ambient + (diffuse + specular) * radiance * payload.beta;
+        Li += (ambient + (diffuse + specular) * radiance) * payload.beta;
     }
 
 

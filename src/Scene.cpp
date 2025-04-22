@@ -19,7 +19,7 @@ void Scene::init(uint32_t maxModelIndex, uint32_t maxMaterialIndex, uint32_t max
 		Light light;
 		light.type = LIGHT_TYPE_DIRECTIONAL;
 		light.castsShadow = true;
-		light.direction = glm::vec4(0.1f, -1.0f, 0.1f, 0.0f);
+		light.direction = glm::vec4(0.0f, -1.0f, -0.5f, 0.0f);
 		light.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		light.intensity = 3.0f;
 		light.range = 100.0f;
@@ -33,27 +33,27 @@ void Scene::init(uint32_t maxModelIndex, uint32_t maxMaterialIndex, uint32_t max
 	// 2 - sphere
 
 
-	{
+	/*{
 		Object obj;
 		obj.modelIndex = 2;
 		obj.position = glm::vec3(-1.5f, 0.0f, 0.0f);
 		obj.overrideMaterialIndex = { 4 };
 		m_objects.push_back(obj);
-	}
+	}*/
 	{
 		Object obj;
 		obj.modelIndex = 2;
 		obj.position = glm::vec3(0.0f, 0.0f, 0.0f);
-		obj.overrideMaterialIndex = { 5 };
+		obj.overrideMaterialIndex = { 4 };
 		m_objects.push_back(obj);
 	}
-	{
+	/*{
 		Object obj;
 		obj.modelIndex = 2;
 		obj.position = glm::vec3(1.5f, 0.0f, 0.0f);
 		obj.overrideMaterialIndex = { 6 };
 		m_objects.push_back(obj);
-	}
+	}*/
 	
 	{
 		Object obj;

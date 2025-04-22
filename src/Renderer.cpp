@@ -25,27 +25,6 @@ void Renderer::init(GLFWwindow* window) {
 	m_extent = {1024, 1024};
 	createDefaultModels();
 
-	/*
-	 loadModel("./assets/materials/aerial_grass_rock_1k.gltf/aerial_grass_rock_1k.gltf");
-	 loadModel("./assets/materials/aerial_rocks_02_1k.gltf/aerial_rocks_02_1k.gltf");
-	 loadModel("./assets/materials/asphalt_02_1k.gltf/asphalt_02_1k.gltf");
-	 loadModel("./assets/materials/beige_wall_001_1k.gltf/beige_wall_001_1k.gltf");
-	 loadModel("./assets/materials/brick_wall_13_4k.gltf/brick_wall_13_4k.gltf");
-	 loadModel("./assets/materials/brown_mud_leaves_01_1k.gltf/brown_mud_leaves_01_1k.gltf");
-	 loadModel("./assets/materials/plywood_1k.gltf/plywood_1k.gltf");
-	 loadModel("./assets/materials/fabric_pattern_07_1k.gltf/fabric_pattern_07_1k.gltf");
-	 loadModel("./assets/models/lion_head_1k.gltf/lion_head_1k.gltf");
-	 loadModel("./assets/models/Camera_01_1k.gltf/Camera_01_1k.gltf");
-	 */
-	// loadModel("./assets/main1_sponza/NewSponza_Main_glTF_003.gltf");
-	//loadModel("./assets/sponza.glb");
-	//loadModel("./main1_sponza/NewSponza_Main_glTF_003.gltf");
-	// loadModel("./pkg_a_curtains/NewSponza_Curtains_glTF.gltf");
-	//loadModel("./assets/nodecal.glb");
-	//loadModel("./assets/models/knight.glb");
-	//loadModel("./assets/models/cornell_box-_original.glb");
-	//loadModel("./assets/models/cornell.gltf");
-
 	// descriptorset layout
 	m_globalLayout = DescriptorSetLayout::createGlobalDescriptorSetLayout(m_context.get());
 	m_objectMaterialLayout = DescriptorSetLayout::createObjectMaterialDescriptorSetLayout(m_context.get());
